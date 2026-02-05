@@ -78,15 +78,18 @@
       </div>
     </aside>
 
-    <!-- Main canvas area -->
-    <main class="canvas-wrap">
-      <div class="canvas">
-        <object data="assets/sun-halftone.svg" type="image/svg+xml"></object>
-        <object data="assets/sun-outline-inner.svg" type="image/svg+xml"></object>
-        <object data="assets/sun-outline-outer.svg" type="image/svg+xml"></object>
+    <!-- Main canvas area (pan/zoom via trackpad: two-finger scroll = pan, pinch = zoom) -->
+    <main class="canvas-wrap" id="canvas-viewport">
+      <div class="canvas-transform" id="canvas-transform">
+        <div class="canvas">
+          <object data="assets/sun-halftone.svg" type="image/svg+xml"></object>
+          <object data="assets/sun-outline-inner.svg" type="image/svg+xml"></object>
+          <object data="assets/sun-outline-outer.svg" type="image/svg+xml"></object>
+        </div>
       </div>
     </main>
   </div>
+  <script src="canvas-pan-zoom.js"></script>
   <script src="sidebar-sliders.js"></script>
 </body>
 </html>

@@ -321,15 +321,27 @@ body {
   pointer-events: none;
 }
 
-/* ——— Canvas area ——— */
+/* ——— Canvas area (pan/zoom) ——— */
 .canvas-wrap {
   grid-area: canvas;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  overflow: auto;
+  overflow: hidden;
   min-height: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.canvas-wrap:active {
+  cursor: grabbing;
+}
+
+.canvas-transform {
+  transform-origin: center center;
+  flex-shrink: 0;
+  /* transform applied by canvas-pan-zoom.js */
 }
 
 .canvas {
