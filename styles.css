@@ -1,0 +1,256 @@
+/* Procreate Vector Concept — Basic Canvas
+   Dark theme, grid background, Procreate-style layout */
+
+:root {
+  --bg-app: #2c2c2e;
+  --bg-grid: #1c1c1e;
+  --grid-line: rgba(255, 255, 255, 0.04);
+  --toolbar-bg: rgba(44, 44, 46, 0.95);
+  --toolbar-border: rgba(255, 255, 255, 0.08);
+  --btn-fg: #e5e5ea;
+  --btn-hover: rgba(255, 255, 255, 0.1);
+  --canvas-bg: #ffffff;
+  --canvas-shadow: rgba(0, 0, 0, 0.3);
+  --color-swatch: #ffffff;
+  --brush-tip: #007aff;
+  /* Ribbon (top bar) */
+  --ribbon-bg: #2c2c2e;
+  --ribbon-bg-bottom: #1c1c1e;
+  --ribbon-btn-circle-bg: #3a3a3c;
+  --ribbon-btn-circle-hover: #48484a;
+  --ribbon-icon: #8e8e93;
+  --ribbon-gallery: #8e8e93;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 16px;
+  color: var(--btn-fg);
+  background: var(--bg-app);
+  overflow: hidden;
+}
+
+/* Grid background */
+body {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-color: var(--bg-grid);
+}
+
+.app {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "ribbon ribbon"
+    "sidebar canvas";
+  height: 100vh;
+  min-height: 0;
+}
+
+/* ——— Top ribbon (Procreate-style) ——— */
+.ribbon {
+  grid-area: ribbon;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 14px;
+  background: linear-gradient(180deg, var(--ribbon-bg) 0%, var(--ribbon-bg) 70%, var(--ribbon-bg-bottom) 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  min-height: 56px;
+}
+
+.ribbon__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ribbon__gallery {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  color: var(--ribbon-gallery);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+}
+
+.ribbon__gallery:hover {
+  color: var(--btn-fg);
+}
+
+.ribbon__gallery-label {
+  line-height: 1;
+}
+
+.ribbon__icon-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ribbon__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ribbon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ribbon-icon);
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.ribbon-btn--circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--ribbon-btn-circle-bg);
+}
+
+.ribbon-btn--circle:hover {
+  background: var(--ribbon-btn-circle-hover);
+  color: var(--btn-fg);
+}
+
+.ribbon-btn__icon {
+  flex-shrink: 0;
+}
+
+.ribbon-btn--brush {
+  width: 44px;
+  height: 44px;
+}
+
+.ribbon-btn--brush:hover {
+  opacity: 0.95;
+}
+
+.ribbon-btn--brush .brush-handle {
+  stroke: var(--ribbon-icon);
+}
+
+.ribbon-btn--brush .brush-tip {
+  stroke: var(--brush-tip);
+}
+
+.ribbon-btn--color {
+  width: 44px;
+  height: 44px;
+  padding: 6px;
+}
+
+.ribbon__color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-swatch);
+  border: 2px solid rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 1px 1px rgba(0, 0, 0, 0.1);
+  display: block;
+}
+
+/* ——— Left sidebar ——— */
+.sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 10px;
+  background: var(--toolbar-bg);
+  border-right: 1px solid var(--toolbar-border);
+}
+
+.slider {
+  width: 8px;
+  min-height: 120px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.slider--vertical {
+  writing-mode: vertical-lr;
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--btn-fg);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.sidebar-btn:hover {
+  background: var(--btn-hover);
+}
+
+.sidebar-btn .icon {
+  width: 24px;
+  height: 24px;
+}
+
+/* ——— Canvas area ——— */
+.canvas-wrap {
+  grid-area: canvas;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.canvas {
+  flex-shrink: 0;
+  width: min(640px, 90vmin);
+  height: min(640px, 90vmin);
+  background: var(--canvas-bg);
+  border-radius: 4px;
+  box-shadow: 0 8px 32px var(--canvas-shadow);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canvas-artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.artwork__stroke {
+  vector-effect: non-scaling-stroke;
+}
