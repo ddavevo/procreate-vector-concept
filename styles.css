@@ -21,10 +21,10 @@
   --ribbon-icon: #8e8e93;
   --ribbon-gallery: #8e8e93;
   /* Sidebar sliders */
-  --sidebar-bg: #2c2c2e;
-  --sidebar-track: #3a3a3c;
-  --sidebar-track-radius: 12px;
-  --sidebar-thumb: #c7c7cc;
+  --sidebar-bg: rgba(24, 24, 24, 1);
+  --sidebar-track: rgba(37, 37, 37, 1);
+  --sidebar-track-radius: 4px;
+  --sidebar-thumb: #A5A5A5;
   --sidebar-pill-border: rgba(255, 255, 255, 0.2);
 }
 
@@ -110,13 +110,13 @@ body {
 .ribbon__icon-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 28px;
 }
 
 .ribbon__right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 44px;
 }
 
 .ribbon-btn {
@@ -187,9 +187,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 20px 12px;
+  width: 34px;
+  padding: 0;
   background: var(--sidebar-bg);
-  border-right: 1px solid var(--toolbar-border);
+  border: none;
   box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
 }
 
@@ -198,14 +199,17 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  color: rgba(37, 37, 37, 1);
 }
 
 .sidebar-slider__track {
   position: relative;
-  width: 12px;
+  width: 100%;
   height: 140px;
   border-radius: var(--sidebar-track-radius);
   background: var(--sidebar-track);
+  color: rgba(37, 37, 37, 1);
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -222,7 +226,7 @@ body {
   transform: translateX(-50%);
   width: 24px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: 4px;
   background: var(--sidebar-thumb);
   cursor: grab;
   pointer-events: auto;
@@ -237,6 +241,45 @@ body {
 
 .sidebar-slider__thumb:active {
   cursor: grabbing;
+}
+
+/* Move container (Figma: rounded square outline, gradient border) */
+.move-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.move-container__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  /* Gradient border: lighter top, darker bottom */
+  background:
+    linear-gradient(var(--sidebar-bg), var(--sidebar-bg)) padding-box,
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.06) 100%) border-box;
+  border: 1px solid transparent;
+  color: var(--ribbon-icon);
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.move-container__btn:hover {
+  color: var(--btn-fg);
+}
+
+.move-container__btn object {
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
 }
 
 /* Middle pill (brush/color indicator) */
