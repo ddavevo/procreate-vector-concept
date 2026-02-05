@@ -81,29 +81,9 @@
     <!-- Main canvas area -->
     <main class="canvas-wrap">
       <div class="canvas">
-        <!-- Pop-art sunburst illustration (raster-style for concept demo) -->
-        <svg class="canvas-artwork" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <!-- Halftone dot pattern (orange on yellow) -->
-            <pattern id="halftone" patternUnits="userSpaceOnUse" width="14" height="14">
-              <circle cx="7" cy="7" r="2.8" fill="#e07c3c"/>
-            </pattern>
-            <!-- Base yellow for halftone overlay -->
-            <linearGradient id="yellow-fill" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#e8c547"/>
-              <stop offset="100%" stop-color="#d4a84b"/>
-            </linearGradient>
-          </defs>
-          <!-- Sunburst: single closed star (8 spikes), yellow + halftone, black stroke -->
-          <path class="artwork__sunburst" fill="url(#yellow-fill)" stroke="#1a1a1a" stroke-width="7" stroke-linejoin="round" d="
-            M200 32 L242 94 L318 88 L268 142 L288 218 L200 188 L112 218 L132 142 L82 88 L158 94 Z
-          "/>
-          <path class="artwork__sunburst" fill="url(#halftone)" stroke="none" opacity="0.88" d="
-            M200 32 L242 94 L318 88 L268 142 L288 218 L200 188 L112 218 L132 142 L82 88 L158 94 Z
-          "/>
-          <!-- Inner thick black arc (crescent / incomplete circle) -->
-          <path class="artwork__stroke" d="M115 200 A85 85 0 0 1 285 200" fill="none" stroke="#1a1a1a" stroke-width="12" stroke-linecap="round"/>
-        </svg>
+        <object data="assets/sun-halftone.svg" type="image/svg+xml"></object>
+        <object data="assets/sun-outline-inner.svg" type="image/svg+xml"></object>
+        <object data="assets/sun-outline-outer.svg" type="image/svg+xml"></object>
       </div>
     </main>
   </div>
