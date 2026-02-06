@@ -107,7 +107,7 @@
         <button type="button" class="interpolation-option" role="option" data-value="nearest-neighbor" aria-selected="false"><span class="interpolation-option__label">Nearest Neighbor</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
         <button type="button" class="interpolation-option" role="option" data-value="bilinear" aria-selected="false"><span class="interpolation-option__label">Bilinear</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
         <button type="button" class="interpolation-option interpolation-option--selected" role="option" data-value="bicubic" aria-selected="false"><span class="interpolation-option__label">Bicubic</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
-        <button type="button" class="interpolation-option" role="option" data-value="vector" aria-selected="true"><span class="interpolation-option__label">Vector</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
+        <button type="button" class="interpolation-option" role="option" data-value="vector" aria-selected="true"><span class="interpolation-option__label">Vector</span><span class="interpolation-option__suffix" aria-hidden="true" hidden>Too complex</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
       </div>
     </div>
 
@@ -224,6 +224,10 @@
   <script src="sidebar-sliders.js"></script>
   <script>
     (function () {
+      // ——— CONFIG: Vector complexity ———
+      // Max vector (path) points before showing "Too complex" in Interpolation overlay. Increase to allow more points.
+      var VECTOR_POINTS_COMPLEXITY_THRESHOLD = 500;
+
       var transformBtn = document.getElementById('transform-btn');
       var transformPanel = document.getElementById('transform-panel');
       if (!transformBtn || !transformPanel) return;
@@ -322,6 +326,13 @@
         return points;
       }
 
+      function getVectorPointCount(obj) {
+        if (!obj || obj.getAttribute('type') !== 'image/svg+xml') return 0;
+        var doc = obj.contentDocument;
+        if (!doc) return 0;
+        return getVectorAnchorsFromSvgDoc(doc).length;
+      }
+
       var vectorAnchorsOverlayEl = document.getElementById('vector-anchors-overlay');
       function showVectorAnchorsForLayer(obj) {
         if (!vectorAnchorsOverlayEl || !obj) return;
@@ -365,6 +376,30 @@
         var transformOpen = panel && !panel.hidden;
         if (getInterpolationValue() === 'vector' && transformOpen) showVectorAnchorsForLayer(getSelectedLayerObject());
         else hideVectorAnchors();
+      }
+
+      function updateVectorOptionAppearance() {
+        var obj = getSelectedLayerObject();
+        var isVector = obj && obj.getAttribute('type') === 'image/svg+xml';
+        var pointCount = getVectorPointCount(obj);
+        var tooComplex = !isVector || pointCount > VECTOR_POINTS_COMPLEXITY_THRESHOLD;
+        var vectorOpt = document.querySelector('.interpolation-option[data-value="vector"]');
+        if (!vectorOpt) return;
+        var suffix = vectorOpt.querySelector('.interpolation-option__suffix');
+        var check = vectorOpt.querySelector('.interpolation-option__check');
+        if (tooComplex) {
+          vectorOpt.classList.add('interpolation-option--too-complex');
+          vectorOpt.setAttribute('aria-disabled', 'true');
+          vectorOpt.disabled = true;
+          if (suffix) { suffix.hidden = false; suffix.textContent = 'Too complex'; }
+          if (check) check.hidden = true;
+        } else {
+          vectorOpt.classList.remove('interpolation-option--too-complex');
+          vectorOpt.setAttribute('aria-disabled', 'false');
+          vectorOpt.disabled = false;
+          if (suffix) suffix.hidden = true;
+          if (check) check.hidden = false;
+        }
       }
 
       function getUniformScaleFromObject(obj) {
@@ -469,11 +504,15 @@
           interpolationPanel.hidden = isOpen;
           interpolationBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
           interpolationBtn.classList.toggle('transform-action--active', !interpolationPanel.hidden);
-          if (!interpolationPanel.hidden) positionInterpolationOverlay();
+          if (!interpolationPanel.hidden) {
+            positionInterpolationOverlay();
+            if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
+          }
         });
         var interpolationLabel = interpolationBtn.querySelector('.transform-action__label');
         document.querySelectorAll('.interpolation-option').forEach(function (opt) {
           opt.addEventListener('click', function () {
+            if (this.classList.contains('interpolation-option--too-complex')) return;
             var newValue = this.getAttribute('data-value');
             document.querySelectorAll('.interpolation-option').forEach(function (o) {
               o.classList.remove('interpolation-option--selected');

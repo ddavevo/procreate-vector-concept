@@ -293,6 +293,35 @@ body {
   height: 16px;
 }
 
+.interpolation-option__suffix {
+  flex-shrink: 0;
+  font-size: 15px;
+  color: #b3b3b3;
+}
+
+.interpolation-option__suffix[hidden] {
+  display: none;
+}
+
+.interpolation-option--too-complex {
+  color: #b3b3b3;
+  cursor: default;
+  opacity: 0.9;
+}
+
+.interpolation-option--too-complex:hover {
+  color: #b3b3b3;
+  background: transparent;
+}
+
+.interpolation-option--too-complex .interpolation-option__check {
+  display: none;
+}
+
+.interpolation-option--too-complex .interpolation-option__suffix {
+  display: block;
+}
+
 /* ——— Layers overlay (opens from Layers button) ——— */
 .layers-overlay {
   position: fixed;
