@@ -297,8 +297,10 @@ body {
 .layers-overlay {
   position: fixed;
   z-index: 200;
-  width: 280px;
-  padding: 16px 0 12px;
+  width: min-content;
+  padding: 20px 8px 8px 8px;
+  display: flex; flex-direction: column;
+  gap: 16px;
   background: #1c1c1e;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -314,14 +316,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px 12px;
+  padding-right: 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .layers-overlay__title {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
-  font-size: 17px;
+  font-size: 28px;
+  padding: 0 16px;
   font-weight: 600;
   color: var(--btn-fg);
   letter-spacing: -0.02em;
@@ -355,16 +358,29 @@ body {
 .layers-overlay__list {
   display: flex;
   flex-direction: column;
-  padding: 4px 8px 0;
   gap: 2px;
+}
+
+.layers-row__left {
+  display: flex;
+  flex: 1;
+  gap: 24px;
+  align-items: center; 
+}
+
+.layers-row__right {
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
 .layers-row {
   display: flex;
   align-items: center;
+  align-items: space-between;
   gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
+  width: 100%; min-width: 376px;
+  padding: 4px 24px 4px 4px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -393,8 +409,8 @@ body {
 }
 
 .layers-row__thumb {
-  width: 32px;
-  height: 32px;
+  width: 70px;
+  height: 58px;
   min-width: 32px;
   border-radius: 6px;
   background: #393939;

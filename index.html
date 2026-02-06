@@ -155,41 +155,63 @@
 
   <!-- Layers overlay (opens when Layers button is clicked; outside .app so position:fixed is viewport-relative) -->
   <div class="layers-overlay" id="layers-overlay" role="dialog" aria-label="Layers" aria-modal="true" hidden>
+    
     <div class="layers-overlay__header">
       <h2 class="layers-overlay__title">Layers</h2>
       <button type="button" class="layers-overlay__add" aria-label="Add layer or group">
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>
       </button>
     </div>
+
     <div class="layers-overlay__list" role="listbox" aria-label="Layers">
       <button type="button" class="layers-row" role="option" data-layer="layer-2" aria-selected="false">
-        <span class="layers-row__thumb" aria-hidden="true"></span>
-        <span class="layers-row__name">Layer 2</span>
-        <span class="layers-row__blend" aria-hidden="true">N</span>
-        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="layers-row__left">
+          <span class="layers-row__thumb" aria-hidden="true"></span>
+          <span class="layers-row__name">Layer 2</span>
+        </div>
+        <div class="layers-row__right">
+          <span class="layers-row__blend" aria-hidden="true">N</span>
+          <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
       <button type="button" class="layers-row" role="option" data-layer="layer-3" aria-selected="false">
-        <span class="layers-row__thumb" aria-hidden="true"></span>
-        <span class="layers-row__name">Layer 3</span>
-        <span class="layers-row__blend" aria-hidden="true">N</span>
+        <div class="layers-row__left">
+          <span class="layers-row__thumb" aria-hidden="true"></span>
+          <span class="layers-row__name">Layer 3</span>
+        </div>
+        <div class="layers-row__right">
+          <span class="layers-row__blend" aria-hidden="true">N</span>
         <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
       <button type="button" class="layers-row layers-row--selected" role="option" data-layer="layer-4" aria-selected="true">
-        <span class="layers-row__thumb" aria-hidden="true"></span>
-        <span class="layers-row__name">Layer 4</span>
-        <span class="layers-row__blend" aria-hidden="true">N</span>
-        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="layers-row__left">
+          <span class="layers-row__thumb" aria-hidden="true"></span>
+          <span class="layers-row__name">Layer 4</span>
+        </div>
+        <div class="layers-row__right">
+          <span class="layers-row__blend" aria-hidden="true">N</span>
+          <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
       <button type="button" class="layers-row layers-row--group" role="option" data-layer="new-group" aria-selected="false">
-        <span class="layers-row__thumb" aria-hidden="true"></span>
-        <span class="layers-row__name">New Group</span>
-        <span class="layers-row__expand" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2l4 4-4 4"/></svg></span>
-        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="layers-row__left">
+          <span class="layers-row__thumb" aria-hidden="true"></span>
+          <span class="layers-row__name">New Group</span>
+        </div>
+        <div class="layers-row__right">
+          <span class="layers-row__expand" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2l4 4-4 4"/></svg></span>
+          <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
       <button type="button" class="layers-row" role="option" data-layer="background" aria-selected="false">
-        <span class="layers-row__thumb layers-row__thumb--white" aria-hidden="true"></span>
-        <span class="layers-row__name">Background Color</span>
-        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <div class="layers-row__left">
+          <span class="layers-row__thumb layers-row__thumb--white" aria-hidden="true"></span>
+          <span class="layers-row__name">Background Color</span>
+        </div>
+        <div class="layers-row__right">
+          <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
       </button>
     </div>
   </div>
@@ -260,7 +282,7 @@
           var rect = layersBtn.getBoundingClientRect();
           var gap = 8;
           var padding = 8;
-          var overlayWidth = 280;
+          var overlayWidth = 390;
           var halfWidth = overlayWidth / 2;
           var top = rect.bottom + gap;
           var leftCenter = rect.left + rect.width / 2;
