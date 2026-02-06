@@ -233,6 +233,7 @@
         transformBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
         transformBtn.classList.toggle('ribbon-btn--active', !transformPanel.hidden);
         if (typeof updateTransformHandles === 'function') updateTransformHandles();
+        if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
       });
       var transformHandlesEl = document.getElementById('transform-handles');
       var HANDLE_HALF = 6;
@@ -331,7 +332,7 @@
           vectorAnchorsOverlayEl.hidden = true;
           obj.addEventListener('load', function onLoad() {
             obj.removeEventListener('load', onLoad);
-            if (getInterpolationValue() === 'vector' && getSelectedLayerObject() === obj) showVectorAnchorsForLayer(obj);
+            if (getSelectedLayerObject() === obj && typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
           });
           return;
         }
@@ -360,7 +361,9 @@
       }
 
       function updateVectorAnchorsFromInterpolation() {
-        if (getInterpolationValue() === 'vector') showVectorAnchorsForLayer(getSelectedLayerObject());
+        var panel = document.getElementById('transform-panel');
+        var transformOpen = panel && !panel.hidden;
+        if (getInterpolationValue() === 'vector' && transformOpen) showVectorAnchorsForLayer(getSelectedLayerObject());
         else hideVectorAnchors();
       }
 
