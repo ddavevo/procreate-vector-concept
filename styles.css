@@ -785,6 +785,7 @@ body {
   position: absolute;
   inset: 0;
   object-fit: contain;
+  transform-origin: center center;
 }
 
 .canvas > object:nth-child(1) {
@@ -805,6 +806,47 @@ body {
   left: 40px;
   top: 70px;
 }
+
+.canvas > object.canvas-layer--selected {
+  outline: 2px solid var(--btn-active);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Anchor handles: fixed overlay so they align with object corners at any canvas zoom/pan */
+.transform-handles {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 150;
+}
+
+.transform-handles[hidden] {
+  display: none;
+}
+
+.transform-handles .transform-handle {
+  pointer-events: auto;
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  background: #fff;
+  border: 2px solid var(--btn-active);
+  border-radius: 2px;
+  cursor: nwse-resize;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  /* left/top set by JS from getBoundingClientRect() */
+}
+
+.transform-handle--nw { cursor: nwse-resize; }
+.transform-handle--ne { cursor: nesw-resize; }
+.transform-handle--sw { cursor: nesw-resize; }
+.transform-handle--se { cursor: nwse-resize; }
 
 .canvas-artwork {
   width: 100%;
