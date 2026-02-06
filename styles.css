@@ -202,6 +202,89 @@ body {
   display: none;
 }
 
+/* ——— Interpolation overlay (positioned above Interpolation button via JS) ——— */
+.interpolation-overlay {
+  position: fixed;
+  z-index: 200;
+  min-width: 240px;
+  padding: 16px 0 0;
+  background: #1c1c1e;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  /* left, bottom, transform set in JS relative to Interpolation button */
+}
+
+.interpolation-overlay[hidden] {
+  display: none;
+}
+
+.interpolation-overlay__title {
+  margin: 0 0 8px;
+  padding: 0 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--btn-fg);
+  letter-spacing: -0.02em;
+}
+
+.interpolation-overlay__list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 8px;
+}
+
+.interpolation-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: var(--ribbon-icon);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.interpolation-option:hover {
+  color: var(--btn-fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.interpolation-option--selected {
+  background: var(--btn-active);
+  color: #fff;
+}
+
+.interpolation-option--selected:hover {
+  color: #fff;
+  background: var(--btn-active);
+}
+
+.interpolation-option__check {
+  display: none;
+  width: 16px;
+  height: 16px;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.interpolation-option--selected .interpolation-option__check {
+  display: block;
+}
+
+.interpolation-option__check svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 .transform-panel__modes {
   display: flex;
   align-items: center;
@@ -272,13 +355,15 @@ body {
 
 .transform-action object {
   filter: brightness(0) saturate(100%) invert(56%);
+  pointer-events: none;
 }
 
 .transform-action:hover {
   color: var(--btn-fg);
 }
 
-.transform-action:active object {
+/* Interpolation button: icon only turns active blue while overlay is open */
+.transform-action--active object {
   filter: brightness(0) saturate(100%) invert(29%) sepia(84%) saturate(3287%) hue-rotate(202deg) brightness(106%) contrast(103%);
 }
 

@@ -89,7 +89,7 @@
           <object data="assets/icons/transform/Fit-to-canvas.svg" type="image/svg+xml"></object>
           <span class="transform-action__label">Fit to Canvas</span>
         </button>
-        <button type="button" class="transform-action" aria-label="Bicubic">
+        <button type="button" class="transform-action" id="interpolation-btn" aria-label="Interpolation" aria-expanded="false" aria-controls="interpolation-panel">
           <object data="assets/icons/transform/Interpolation.svg" type="image/svg+xml"></object>
           <span class="transform-action__label">Bicubic</span>
         </button>
@@ -97,6 +97,17 @@
           <object data="assets/icons/transform/Reset.svg" type="image/svg+xml"></object>
           <span class="transform-action__label">Reset</span>
         </button>
+      </div>
+    </div>
+
+    <!-- Interpolation overlay (pop-up when Interpolation button is clicked) -->
+    <div class="interpolation-overlay" id="interpolation-panel" role="dialog" aria-label="Interpolation" aria-modal="true" hidden>
+      <h2 class="interpolation-overlay__title">Interpolation</h2>
+      <div class="interpolation-overlay__list" role="listbox" aria-label="Interpolation method">
+        <button type="button" class="interpolation-option" role="option" data-value="nearest-neighbor" aria-selected="false"><span class="interpolation-option__label">Nearest Neighbor</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
+        <button type="button" class="interpolation-option" role="option" data-value="bilinear" aria-selected="false"><span class="interpolation-option__label">Bilinear</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
+        <button type="button" class="interpolation-option interpolation-option--selected" role="option" data-value="bicubic" aria-selected="false"><span class="interpolation-option__label">Bicubic</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
+        <button type="button" class="interpolation-option" role="option" data-value="vector" aria-selected="true"><span class="interpolation-option__label">Vector</span><span class="interpolation-option__check" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg></span></button>
       </div>
     </div>
 
@@ -160,6 +171,43 @@
           btn.classList.add('transform-mode--active');
         });
       });
+
+      var interpolationBtn = document.getElementById('interpolation-btn');
+      var interpolationPanel = document.getElementById('interpolation-panel');
+      if (interpolationBtn && interpolationPanel) {
+        function positionInterpolationOverlay() {
+          var rect = interpolationBtn.getBoundingClientRect();
+          var gap = 8;
+          interpolationPanel.style.left = (rect.left + rect.width / 2) + 'px';
+          interpolationPanel.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+          interpolationPanel.style.transform = 'translate(-50%, 0)';
+        }
+        interpolationBtn.addEventListener('click', function () {
+          var isOpen = !interpolationPanel.hidden;
+          interpolationPanel.hidden = isOpen;
+          interpolationBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+          interpolationBtn.classList.toggle('transform-action--active', !interpolationPanel.hidden);
+          if (!interpolationPanel.hidden) positionInterpolationOverlay();
+        });
+        var interpolationLabel = interpolationBtn.querySelector('.transform-action__label');
+        document.querySelectorAll('.interpolation-option').forEach(function (opt) {
+          opt.addEventListener('click', function () {
+            document.querySelectorAll('.interpolation-option').forEach(function (o) {
+              o.classList.remove('interpolation-option--selected');
+              o.setAttribute('aria-selected', 'false');
+            });
+            this.classList.add('interpolation-option--selected');
+            this.setAttribute('aria-selected', 'true');
+            if (interpolationLabel) {
+              var optionLabel = this.querySelector('.interpolation-option__label');
+              interpolationLabel.textContent = optionLabel ? optionLabel.textContent : this.textContent.trim();
+            }
+            interpolationPanel.hidden = true;
+            interpolationBtn.setAttribute('aria-expanded', 'false');
+            interpolationBtn.classList.remove('transform-action--active');
+          });
+        });
+      }
     })();
   </script>
 </body>
