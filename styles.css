@@ -12,7 +12,7 @@
   --canvas-bg: #ffffff;
   --canvas-shadow: rgba(0, 0, 0, 0.3);
   --color-swatch: #ffffff;
-  --brush-tip: #007aff;
+  --btn-active: #007aff;
   /* Ribbon (top bar) */
   --ribbon-bg: #1D1D1D;
   --ribbon-gallery: #8e8e93;
@@ -25,6 +25,9 @@
   --sidebar-track-radius: 4px;
   --sidebar-thumb: #A5A5A5;
   --sidebar-pill-border: rgba(255, 255, 255, 0.2);
+  /* Transform panel */
+  --transform-modes-bg: #393939;
+  --transform-panel-bg: #212121;
 }
 
 *,
@@ -126,6 +129,7 @@ body {
 
 .ribbon-btn > object {
   width: 24px; height: 24px;
+  pointer-events: none;
 }
 
 .ribbon__left {
@@ -144,6 +148,23 @@ body {
   color: var(--btn-fg);
 }
 
+.ribbon__left .ribbon-btn:active {
+  background: var(--btn-active);
+}
+
+.ribbon__left .ribbon-btn.ribbon-btn--active {
+  background: var(--btn-active);
+  color: #fff;
+}
+
+.ribbon__left .ribbon-btn.ribbon-btn--active object {
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.ribbon__left .ribbon-btn object:active {
+  filter: brightness(0) saturate(100%) invert(99%) sepia(1%) saturate(649%) hue-rotate(197deg) brightness(120%) contrast(100%);
+}
+
 .ribbon__right {
   display: flex;
   align-items: center;
@@ -157,6 +178,131 @@ body {
   border: 2px solid rgba(0, 0, 0, 0.15);
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 1px 1px rgba(0, 0, 0, 0.1);
   display: block;
+}
+
+/* ——— Transform actions panel (bottom center) ——— */
+.transform-panel {
+  position: fixed;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--transform-panel-bg);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 320px;
+}
+
+.transform-panel[hidden] {
+  display: none;
+}
+
+.transform-panel__modes {
+  display: flex;
+  align-items: center;
+  background: var(--transform-modes-bg);
+  border-radius: 8px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.transform-mode {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  padding: 4px 16px;
+  gap: 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ribbon-icon);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.transform-mode:hover {
+  color: var(--btn-fg);
+}
+
+/* Unselected: gray icon (SVG is white; filter makes it gray to match --ribbon-icon) */
+.transform-mode object {
+  filter: brightness(0) saturate(100%) invert(56%);
+  pointer-events: none;
+}
+
+.transform-mode--active {
+  background: var(--btn-active);
+  color: #fff;
+}
+
+/* Selected: white icon */
+.transform-mode--active object {
+  filter: brightness(0) saturate(100%) invert(100%);
+}
+
+.transform-panel__actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.transform-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ribbon-icon);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  min-width: 56px;
+}
+
+.transform-action object {
+  filter: brightness(0) saturate(100%) invert(56%);
+}
+
+.transform-action:hover {
+  color: var(--btn-fg);
+}
+
+.transform-action:active object {
+  filter: brightness(0) saturate(100%) invert(29%) sepia(84%) saturate(3287%) hue-rotate(202deg) brightness(106%) contrast(103%);
+}
+
+.transform-action__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: inherit;
+}
+
+.transform-action__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.transform-action__label {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: inherit;
+  white-space: nowrap;
 }
 
 /* ——— Left sidebar (Procreate-style) ——— */

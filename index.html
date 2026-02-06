@@ -21,11 +21,11 @@
           <button class="ribbon-btn" type="button" aria-label="Adjustments">
             <object data="assets/icons/Adjustments.svg" type="image/svg+xml"></object>
           </button>
-          <button class="ribbon-btn" type="button" aria-label="Symmetry">
+          <button class="ribbon-btn" type="button" aria-label="Selection">
             <object data="assets/icons/Selection.svg" type="image/svg+xml"></object>
           </button>
-          <button class="ribbon-btn" type="button" aria-label="Transform">
-            <object data="assets/icons/Move.svg" type="image/svg+xml"></object>
+          <button class="ribbon-btn" id="transform-btn" type="button" aria-label="Transform" aria-expanded="false" aria-controls="transform-panel">
+            <object data="assets/icons/Transform.svg" type="image/svg+xml"></object>
           </button>
         </div>
       </div>
@@ -48,6 +48,58 @@
       </div>
     </header>
 
+    <!-- Transform actions panel (centered at bottom, toggled by Transform button) -->
+    <div class="transform-panel" id="transform-panel" role="dialog" aria-label="Transform options" hidden>
+      <div class="transform-panel__modes">
+        <button type="button" class="transform-mode transform-mode--active" data-mode="freeform">
+          <object data="assets/icons/transform/Freeform.svg" type="image/svg+xml"></object>
+          <span>Freeform</span>
+        </button>
+        <button type="button" class="transform-mode" data-mode="uniform">
+          <object data="assets/icons/transform/Uniform.svg" type="image/svg+xml"></object>
+          <span>Uniform</span>
+        </button>
+        <button type="button" class="transform-mode" data-mode="distort">
+          <object data="assets/icons/transform/Distort.svg" type="image/svg+xml"></object>
+          <span>Distort</span>
+        </button>
+        <button type="button" class="transform-mode" data-mode="warp">
+          <object data="assets/icons/transform/Warp.svg" type="image/svg+xml"></object>
+          <span>Warp</span>
+        </button>
+      </div>
+      <div class="transform-panel__actions">
+        <button type="button" class="transform-action" aria-label="Snapping">
+          <object data="assets/icons/transform/Snapping.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Snapping</span>
+        </button>
+        <button type="button" class="transform-action" aria-label="Flip Horizontal">
+          <object data="assets/icons/transform/Flip-horizontal.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Flip Horizontal</span>
+        </button>
+        <button type="button" class="transform-action" aria-label="Flip Vertical">
+          <object data="assets/icons/transform/Flip-vertical.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Flip Vertical</span>
+        </button>
+        <button type="button" class="transform-action" aria-label="Rotate 45°">
+          <object data="assets/icons/transform/Rotate-45deg.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Rotate 45°</span>
+        </button>
+        <button type="button" class="transform-action" aria-label="Fit to Canvas">
+          <object data="assets/icons/transform/Fit-to-canvas.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Fit to Canvas</span>
+        </button>
+        <button type="button" class="transform-action" aria-label="Bicubic">
+          <object data="assets/icons/transform/Interpolation.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Bicubic</span>
+        </button>
+        <button type="button" class="transform-action" aria-label="Reset">
+          <object data="assets/icons/transform/Reset.svg" type="image/svg+xml"></object>
+          <span class="transform-action__label">Reset</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Left sidebar (Procreate-style) -->
     <aside class="sidebar">
       <div class="sidebar-slider" data-slider="brush-size" role="group" aria-label="Brush Size">
@@ -57,7 +109,7 @@
       </div>
 
       <div class="move-container" aria-label="Move">
-        <button class="move-container__btn" type="button" aria-label="Move / Transform">
+        <button class="move-container__btn" type="button" aria-label="Move">
           <object data="assets/icons/Move-sidebar.svg" type="image/svg+xml" width="18" height="18" aria-hidden="true"></object>
         </button>
       </div>
@@ -91,5 +143,24 @@
   </div>
   <script src="canvas-pan-zoom.js"></script>
   <script src="sidebar-sliders.js"></script>
+  <script>
+    (function () {
+      var transformBtn = document.getElementById('transform-btn');
+      var transformPanel = document.getElementById('transform-panel');
+      if (!transformBtn || !transformPanel) return;
+      transformBtn.addEventListener('click', function () {
+        var isOpen = !transformPanel.hidden;
+        transformPanel.hidden = isOpen;
+        transformBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        transformBtn.classList.toggle('ribbon-btn--active', !transformPanel.hidden);
+      });
+      document.querySelectorAll('.transform-mode').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          document.querySelectorAll('.transform-mode').forEach(function (b) { b.classList.remove('transform-mode--active'); });
+          btn.classList.add('transform-mode--active');
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
