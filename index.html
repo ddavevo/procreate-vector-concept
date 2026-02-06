@@ -39,7 +39,7 @@
         <button class="ribbon-btn" type="button" aria-label="Eraser">
           <object data="assets/icons/Eraser.svg" type="image/svg+xml"></object>
         </button>
-        <button class="ribbon-btn" type="button" aria-label="Layers">
+        <button class="ribbon-btn" id="layers-btn" type="button" aria-label="Layers" aria-expanded="false" aria-controls="layers-overlay">
           <object data="assets/icons/Layers.svg" type="image/svg+xml"></object>
         </button>
         <button class="ribbon-btn" type="button" aria-label="Color">
@@ -152,6 +152,48 @@
       </div>
     </main>
   </div>
+
+  <!-- Layers overlay (opens when Layers button is clicked; outside .app so position:fixed is viewport-relative) -->
+  <div class="layers-overlay" id="layers-overlay" role="dialog" aria-label="Layers" aria-modal="true" hidden>
+    <div class="layers-overlay__header">
+      <h2 class="layers-overlay__title">Layers</h2>
+      <button type="button" class="layers-overlay__add" aria-label="Add layer or group">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="4" x2="10" y2="16"/><line x1="4" y1="10" x2="16" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="layers-overlay__list" role="listbox" aria-label="Layers">
+      <button type="button" class="layers-row" role="option" data-layer="layer-2" aria-selected="false">
+        <span class="layers-row__thumb" aria-hidden="true"></span>
+        <span class="layers-row__name">Layer 2</span>
+        <span class="layers-row__blend" aria-hidden="true">N</span>
+        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button type="button" class="layers-row" role="option" data-layer="layer-3" aria-selected="false">
+        <span class="layers-row__thumb" aria-hidden="true"></span>
+        <span class="layers-row__name">Layer 3</span>
+        <span class="layers-row__blend" aria-hidden="true">N</span>
+        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button type="button" class="layers-row layers-row--selected" role="option" data-layer="layer-4" aria-selected="true">
+        <span class="layers-row__thumb" aria-hidden="true"></span>
+        <span class="layers-row__name">Layer 4</span>
+        <span class="layers-row__blend" aria-hidden="true">N</span>
+        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button type="button" class="layers-row layers-row--group" role="option" data-layer="new-group" aria-selected="false">
+        <span class="layers-row__thumb" aria-hidden="true"></span>
+        <span class="layers-row__name">New Group</span>
+        <span class="layers-row__expand" aria-hidden="true"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 2l4 4-4 4"/></svg></span>
+        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+      <button type="button" class="layers-row" role="option" data-layer="background" aria-selected="false">
+        <span class="layers-row__thumb layers-row__thumb--white" aria-hidden="true"></span>
+        <span class="layers-row__name">Background Color</span>
+        <span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </button>
+    </div>
+  </div>
+
   <script src="canvas-pan-zoom.js"></script>
   <script src="sidebar-sliders.js"></script>
   <script>
@@ -205,6 +247,55 @@
             interpolationPanel.hidden = true;
             interpolationBtn.setAttribute('aria-expanded', 'false');
             interpolationBtn.classList.remove('transform-action--active');
+          });
+        });
+      }
+
+      /* Layers overlay: open/close from Layers button, positioned below and centered on button */
+      var layersBtn = document.getElementById('layers-btn');
+      var layersOverlay = document.getElementById('layers-overlay');
+      if (layersBtn && layersOverlay) {
+        function positionLayersOverlay() {
+          if (layersOverlay.hidden) return;
+          var rect = layersBtn.getBoundingClientRect();
+          var gap = 8;
+          var padding = 8;
+          var overlayWidth = 280;
+          var halfWidth = overlayWidth / 2;
+          var top = rect.bottom + gap;
+          var leftCenter = rect.left + rect.width / 2;
+          var vw = window.innerWidth;
+          var vh = window.innerHeight;
+          var overlayHeight = layersOverlay.offsetHeight;
+          leftCenter = Math.max(halfWidth + padding, Math.min(vw - halfWidth - padding, leftCenter));
+          top = Math.max(padding, Math.min(vh - overlayHeight - padding, top));
+          layersOverlay.style.top = top + 'px';
+          layersOverlay.style.left = leftCenter + 'px';
+          layersOverlay.style.transform = 'translate(-50%, 0)';
+        }
+        layersBtn.addEventListener('click', function () {
+          var isOpen = !layersOverlay.hidden;
+          layersOverlay.hidden = isOpen;
+          layersBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+          layersBtn.classList.toggle('ribbon-btn--active', !layersOverlay.hidden);
+          if (!layersOverlay.hidden) {
+            requestAnimationFrame(function () {
+              positionLayersOverlay();
+            });
+          }
+        });
+        window.addEventListener('resize', function () {
+          if (!layersOverlay.hidden) positionLayersOverlay();
+        });
+        document.querySelectorAll('.layers-overlay__list .layers-row').forEach(function (row) {
+          row.addEventListener('click', function () {
+            if (this.classList.contains('layers-row--group')) return; /* could expand group later */
+            document.querySelectorAll('.layers-overlay__list .layers-row').forEach(function (r) {
+              r.classList.remove('layers-row--selected');
+              r.setAttribute('aria-selected', 'false');
+            });
+            this.classList.add('layers-row--selected');
+            this.setAttribute('aria-selected', 'true');
           });
         });
       }

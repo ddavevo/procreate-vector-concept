@@ -171,6 +171,14 @@ body {
   gap: 44px;
 }
 
+.ribbon__right .ribbon-btn.ribbon-btn--active {
+  color: var(--btn-active);
+}
+
+.ribbon__right .ribbon-btn.ribbon-btn--active object {
+  filter: brightness(0) saturate(100%) invert(29%) sepia(84%) saturate(3287%) hue-rotate(202deg) brightness(106%) contrast(103%);
+}
+
 .ribbon__color-swatch {
   width: 28px; height: 28px;
   border-radius: 50%;
@@ -283,6 +291,174 @@ body {
   display: block;
   width: 16px;
   height: 16px;
+}
+
+/* ——— Layers overlay (opens from Layers button) ——— */
+.layers-overlay {
+  position: fixed;
+  z-index: 200;
+  width: 280px;
+  padding: 16px 0 12px;
+  background: #1c1c1e;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  /* top, left, transform set in JS relative to Layers button */
+}
+
+.layers-overlay[hidden] {
+  display: none;
+}
+
+.layers-overlay__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.layers-overlay__title {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--btn-fg);
+  letter-spacing: -0.02em;
+}
+
+.layers-overlay__add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ribbon-icon);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.layers-overlay__add:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--btn-fg);
+}
+
+.layers-overlay__add svg {
+  width: 20px;
+  height: 20px;
+}
+
+.layers-overlay__list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px 0;
+  gap: 2px;
+}
+
+.layers-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ribbon-icon);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.layers-row:hover {
+  color: var(--btn-fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.layers-row--selected {
+  background: var(--btn-active);
+  color: #fff;
+}
+
+.layers-row--selected:hover {
+  background: var(--btn-active);
+  color: #fff;
+}
+
+.layers-row__thumb {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 6px;
+  background: #393939;
+  flex-shrink: 0;
+}
+
+.layers-row__thumb--white {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.layers-row__name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layers-row__blend {
+  font-size: 13px;
+  font-weight: 500;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.layers-row__expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.layers-row__expand svg {
+  width: 12px;
+  height: 12px;
+}
+
+.layers-row--group .layers-row__blend {
+  display: none;
+}
+
+.layers-row:not(.layers-row--group) .layers-row__expand {
+  display: none;
+}
+
+.layers-row__visibility {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.layers-row__visibility svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Hide blend on Background Color row (no N) */
+.layers-row[data-layer="background"] .layers-row__blend {
+  display: none;
 }
 
 .transform-panel__modes {
