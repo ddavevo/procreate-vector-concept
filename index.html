@@ -229,7 +229,7 @@
         transformPanel.hidden = isOpen;
         transformBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
         transformBtn.classList.toggle('ribbon-btn--active', !transformPanel.hidden);
-        if (!transformPanel.hidden && typeof updateTransformHandles === 'function') updateTransformHandles();
+        if (typeof updateTransformHandles === 'function') updateTransformHandles();
       });
       var transformHandlesEl = document.getElementById('transform-handles');
       var HANDLE_HALF = 6;
@@ -286,12 +286,14 @@
 
       if (transformHandlesEl) {
         transformHandlesEl.querySelectorAll('.transform-handle').forEach(function (handle) {
-          handle.addEventListener('mousedown', function (e) {
+          handle.addEventListener('pointerdown', function (e) {
             if (e.button !== 0) return;
             e.preventDefault();
             e.stopPropagation();
             var obj = getSelectedLayerObject();
             if (!obj) return;
+            var pointerId = e.pointerId;
+            handle.setPointerCapture(pointerId);
             var objRect = obj.getBoundingClientRect();
             var centerX = objRect.left + objRect.width / 2;
             var centerY = objRect.top + objRect.height / 2;
@@ -299,6 +301,7 @@
             var initialScale = getUniformScaleFromObject(obj);
 
             function onMove(e) {
+              if (e.pointerId !== pointerId) return;
               e.preventDefault();
               var currentDist = Math.max(distance(centerX, centerY, e.clientX, e.clientY), 1);
               var scale = initialScale * (currentDist / initialDist);
@@ -306,12 +309,16 @@
               applyUniformScaleToObject(obj, scale);
               updateTransformHandles();
             }
-            function onUp() {
-              document.removeEventListener('mousemove', onMove);
-              document.removeEventListener('mouseup', onUp);
+            function onUp(e) {
+              if (e.pointerId !== pointerId) return;
+              handle.releasePointerCapture(pointerId);
+              handle.removeEventListener('pointermove', onMove);
+              handle.removeEventListener('pointerup', onUp);
+              handle.removeEventListener('pointercancel', onUp);
             }
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
+            handle.addEventListener('pointermove', onMove);
+            handle.addEventListener('pointerup', onUp);
+            handle.addEventListener('pointercancel', onUp);
           });
         });
       }
