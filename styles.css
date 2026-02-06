@@ -808,9 +808,14 @@ body {
 }
 
 .canvas > object.canvas-layer--selected {
-  outline: 2px solid var(--btn-active);
+  outline: 0 dashed var(--btn-active);
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+/* Show selection outline only when Transform tab is active and handles are visible */
+.app.transform-active .canvas > object.canvas-layer--selected {
+  outline-width: 2px;
 }
 
 /* Anchor handles: fixed overlay so they align with object corners at any canvas zoom/pan */
@@ -828,20 +833,20 @@ body {
   display: none;
 }
 
-/* Larger hit area (32px) so nearby clicks don’t fall through to canvas pan; visual handle stays 12px */
+/* Hit area 32px; only the 8×8 content is drawn so padding is invisible */
 .transform-handles .transform-handle {
   pointer-events: auto;
   position: fixed;
-  width: 12px;
-  height: 12px;
-  padding: 10px;
+  width: 20px;
+  height: 20px;
+  padding: 8px;
   margin-left: -16px;
   margin-top: -16px;
   background: #fff;
-  border: 2px solid var(--btn-active);
-  border-radius: 2px;
+  background-clip: content-box;
+  border: none;
+  border-radius: 1px;
   cursor: nwse-resize;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   box-sizing: content-box;
   /* left/top set by JS from getBoundingClientRect() */
 }
@@ -850,6 +855,34 @@ body {
 .transform-handle--ne { cursor: nesw-resize; }
 .transform-handle--sw { cursor: nesw-resize; }
 .transform-handle--se { cursor: nwse-resize; }
+
+/* Vector anchor points overlay (shown only when Interpolation = Vector on selected vector layer) */
+.vector-anchors-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 140;
+}
+
+.vector-anchors-overlay[hidden] {
+  display: none;
+}
+
+.vector-anchor-point {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: #0a84ff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-sizing: border-box;
+  /* left/top set by JS from SVG path points mapped to viewport */
+}
 
 .canvas-artwork {
   width: 100%;

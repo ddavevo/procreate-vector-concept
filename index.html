@@ -217,6 +217,9 @@
     <span class="transform-handle transform-handle--se" data-handle="se"></span>
   </div>
 
+  <!-- Vector anchor points overlay (shown only when Interpolation is "Vector" on selected vector layer) -->
+  <div class="vector-anchors-overlay" id="vector-anchors-overlay" aria-hidden="true" hidden></div>
+
   <script src="canvas-pan-zoom.js"></script>
   <script src="sidebar-sliders.js"></script>
   <script>
@@ -239,6 +242,128 @@
         return canvasEl ? canvasEl.querySelector('.canvas-layer--selected') : null;
       }
 
+      function getInterpolationValue() {
+        var sel = document.querySelector('.interpolation-option.interpolation-option--selected');
+        return sel ? sel.getAttribute('data-value') : null;
+      }
+
+      function parsePathD(d) {
+        if (!d || typeof d !== 'string') return [];
+        var points = [];
+        var tokens = d.replace(/,/g, ' ').match(/[-+]?[0-9]*\.?[0-9]+(?:e[-+]?[0-9]+)?|[MmLlHhVvCcSsQqTtAaZz]/gi) || [];
+        var i = 0;
+        var px = 0, py = 0, x0 = 0, y0 = 0;
+        function nextNum() {
+          while (i < tokens.length) {
+            var t = tokens[i];
+            if (t != null && t.length > 0 && (t === '-' || t === '+' || /^[0-9]/.test(t))) return parseFloat(tokens[i++]);
+            if (t != null && /^[MmLlHhVvCcSsQqTtAaZz]$/i.test(t)) return null;
+            i++;
+          }
+          return null;
+        }
+        while (i < tokens.length) {
+          var t = tokens[i];
+          if (!t || t.length !== 1 || !/^[MmLlHhVvCcSsQqTtAaZz]$/i.test(t)) { i++; continue; }
+          i++;
+          var c = t.toUpperCase();
+          if (c === 'M') {
+            var x = nextNum(), y = nextNum();
+            if (x != null && y != null) { px = x; py = y; x0 = x; y0 = y; points.push({ x: px, y: py }); }
+            while ((x = nextNum()) != null && (y = nextNum()) != null) { px = x; py = y; points.push({ x: px, y: py }); }
+            continue;
+          }
+          if (c === 'L') {
+            while ((x = nextNum()) != null && (y = nextNum()) != null) { px = x; py = y; points.push({ x: px, y: py }); }
+            continue;
+          }
+          if (c === 'H') { while ((x = nextNum()) != null) { px = x; points.push({ x: px, y: py }); } continue; }
+          if (c === 'V') { while ((y = nextNum()) != null) { py = y; points.push({ x: px, y: py }); } continue; }
+          if (c === 'C') {
+            while (true) {
+              nextNum(); nextNum(); nextNum(); nextNum();
+              px = nextNum(); py = nextNum();
+              if (px == null || py == null) break;
+              points.push({ x: px, y: py });
+            }
+            continue;
+          }
+          if (c === 'S' || c === 'Q') {
+            while (true) {
+              nextNum(); nextNum();
+              px = nextNum(); py = nextNum();
+              if (px == null || py == null) break;
+              points.push({ x: px, y: py });
+            }
+            continue;
+          }
+          if (c === 'T') { while ((px = nextNum()) != null && (py = nextNum()) != null) points.push({ x: px, y: py }); continue; }
+          if (c === 'A') {
+            while (nextNum() != null && nextNum() != null && nextNum() != null && nextNum() != null && nextNum() != null) {
+              px = nextNum(); py = nextNum();
+              if (px != null && py != null) points.push({ x: px, y: py });
+            }
+            continue;
+          }
+          if (c === 'Z') { px = x0; py = y0; continue; }
+        }
+        return points;
+      }
+
+      function getVectorAnchorsFromSvgDoc(svgDoc) {
+        if (!svgDoc) return [];
+        var points = [];
+        var paths = svgDoc.querySelectorAll('path');
+        for (var p = 0; p < paths.length; p++) {
+          var d = paths[p].getAttribute('d');
+          points = points.concat(parsePathD(d));
+        }
+        return points;
+      }
+
+      var vectorAnchorsOverlayEl = document.getElementById('vector-anchors-overlay');
+      function showVectorAnchorsForLayer(obj) {
+        if (!vectorAnchorsOverlayEl || !obj) return;
+        if (obj.getAttribute('type') !== 'image/svg+xml') { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; return; }
+        var doc = obj.contentDocument;
+        if (!doc) {
+          vectorAnchorsOverlayEl.innerHTML = '';
+          vectorAnchorsOverlayEl.hidden = true;
+          obj.addEventListener('load', function onLoad() {
+            obj.removeEventListener('load', onLoad);
+            if (getInterpolationValue() === 'vector' && getSelectedLayerObject() === obj) showVectorAnchorsForLayer(obj);
+          });
+          return;
+        }
+        var svg = doc.querySelector('svg');
+        if (!svg) { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; return; }
+        var vb = svg.getAttribute('viewBox');
+        var w = parseFloat(svg.getAttribute('width')) || (vb ? parseFloat(vb.split(/\s+/)[2]) : 0) || 1;
+        var h = parseFloat(svg.getAttribute('height')) || (vb ? parseFloat(vb.split(/\s+/)[3]) : 0) || 1;
+        var pts = getVectorAnchorsFromSvgDoc(doc);
+        var objRect = obj.getBoundingClientRect();
+        vectorAnchorsOverlayEl.innerHTML = '';
+        for (var i = 0; i < pts.length; i++) {
+          var vpLeft = objRect.left + (pts[i].x / w) * objRect.width;
+          var vpTop = objRect.top + (pts[i].y / h) * objRect.height;
+          var dot = document.createElement('span');
+          dot.className = 'vector-anchor-point';
+          dot.style.left = vpLeft + 'px';
+          dot.style.top = vpTop + 'px';
+          vectorAnchorsOverlayEl.appendChild(dot);
+        }
+        vectorAnchorsOverlayEl.hidden = pts.length === 0;
+      }
+
+      function hideVectorAnchors() {
+        if (vectorAnchorsOverlayEl) { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; }
+      }
+
+      function updateVectorAnchorsFromInterpolation() {
+        if (getInterpolationValue() === 'vector') showVectorAnchorsForLayer(getSelectedLayerObject());
+        else hideVectorAnchors();
+      }
+
       function getUniformScaleFromObject(obj) {
         if (!obj) return 100;
         var scale = obj.getAttribute('data-uniform-scale');
@@ -256,12 +381,14 @@
         return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
       }
 
+      var appEl = document.querySelector('.app');
       function updateTransformHandles() {
         var obj = getSelectedLayerObject();
         var isUniform = document.querySelector('.transform-mode[data-mode="uniform"].transform-mode--active') != null;
         var show = !transformPanel.hidden && isUniform && obj && transformHandlesEl;
         if (!show) {
           if (transformHandlesEl) transformHandlesEl.hidden = true;
+          if (appEl) appEl.classList.remove('transform-active');
           return;
         }
         var objRect = obj.getBoundingClientRect();
@@ -274,6 +401,7 @@
         if (sw) { sw.style.left = (objRect.left - HANDLE_HALF) + 'px'; sw.style.top = (objRect.bottom - HANDLE_HALF) + 'px'; }
         if (se) { se.style.left = (objRect.right - HANDLE_HALF) + 'px'; se.style.top = (objRect.bottom - HANDLE_HALF) + 'px'; }
         transformHandlesEl.hidden = false;
+        if (appEl) appEl.classList.add('transform-active');
       }
 
       document.querySelectorAll('.transform-mode').forEach(function (btn) {
@@ -343,6 +471,7 @@
         var interpolationLabel = interpolationBtn.querySelector('.transform-action__label');
         document.querySelectorAll('.interpolation-option').forEach(function (opt) {
           opt.addEventListener('click', function () {
+            var newValue = this.getAttribute('data-value');
             document.querySelectorAll('.interpolation-option').forEach(function (o) {
               o.classList.remove('interpolation-option--selected');
               o.setAttribute('aria-selected', 'false');
@@ -356,6 +485,7 @@
             interpolationPanel.hidden = true;
             interpolationBtn.setAttribute('aria-expanded', 'false');
             interpolationBtn.classList.remove('transform-action--active');
+            updateVectorAnchorsFromInterpolation();
           });
         });
       }
@@ -412,6 +542,7 @@
             this.setAttribute('aria-selected', 'true');
             if (targetObject) targetObject.classList.add('canvas-layer--selected');
             if (typeof updateTransformHandles === 'function') updateTransformHandles();
+            if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
           });
         });
       }
