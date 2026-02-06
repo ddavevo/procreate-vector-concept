@@ -788,17 +788,21 @@ body {
 }
 
 .canvas > object:nth-child(1) {
-  left: 100px;
-  top: 100px;
+  width: 800px;
 }
 
 .canvas > object:nth-child(2) {
-  left: 156px;
-  top: 144px;
+  left: 60px;
+  top: 100px;
 }
 
 .canvas > object:nth-child(3) {
-  left: 80px;
+  left: 116px;
+  top: 144px;
+}
+
+.canvas > object:nth-child(4) {
+  left: 40px;
   top: 70px;
 }
 
