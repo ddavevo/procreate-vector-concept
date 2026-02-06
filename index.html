@@ -353,6 +353,11 @@
         var w = parseFloat(svg.getAttribute('width')) || (vb ? parseFloat(vb.split(/\s+/)[2]) : 0) || 1;
         var h = parseFloat(svg.getAttribute('height')) || (vb ? parseFloat(vb.split(/\s+/)[3]) : 0) || 1;
         var pts = getVectorAnchorsFromSvgDoc(doc);
+        if (pts.length > VECTOR_POINTS_COMPLEXITY_THRESHOLD) {
+          vectorAnchorsOverlayEl.innerHTML = '';
+          vectorAnchorsOverlayEl.hidden = true;
+          return;
+        }
         var objRect = obj.getBoundingClientRect();
         vectorAnchorsOverlayEl.innerHTML = '';
         for (var i = 0; i < pts.length; i++) {
@@ -399,6 +404,22 @@
           vectorOpt.disabled = false;
           if (suffix) suffix.hidden = true;
           if (check) check.hidden = false;
+        }
+      }
+
+      function switchInterpolationTo(value) {
+        var opt = document.querySelector('.interpolation-option[data-value="' + value + '"]');
+        if (!opt || opt.classList.contains('interpolation-option--too-complex')) return;
+        document.querySelectorAll('.interpolation-option').forEach(function (o) {
+          o.classList.remove('interpolation-option--selected');
+          o.setAttribute('aria-selected', 'false');
+        });
+        opt.classList.add('interpolation-option--selected');
+        opt.setAttribute('aria-selected', 'true');
+        var interpolationLabel = document.querySelector('#interpolation-btn .transform-action__label');
+        if (interpolationLabel) {
+          var optionLabel = opt.querySelector('.interpolation-option__label');
+          interpolationLabel.textContent = optionLabel ? optionLabel.textContent : opt.textContent.trim();
         }
       }
 
@@ -584,7 +605,19 @@
             this.setAttribute('aria-selected', 'true');
             if (targetObject) targetObject.classList.add('canvas-layer--selected');
             if (typeof updateTransformHandles === 'function') updateTransformHandles();
-            if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
+            if (getInterpolationValue() === 'vector' && targetObject) {
+              var count = getVectorPointCount(targetObject);
+              var isVectorLayer = targetObject.getAttribute('type') === 'image/svg+xml';
+              if (!isVectorLayer || count > VECTOR_POINTS_COMPLEXITY_THRESHOLD) {
+                if (typeof switchInterpolationTo === 'function') switchInterpolationTo('bicubic');
+                if (typeof hideVectorAnchors === 'function') hideVectorAnchors();
+              } else {
+                if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
+              }
+            } else {
+              if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
+            }
+            if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
           });
         });
       }
