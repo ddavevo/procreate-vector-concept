@@ -334,7 +334,7 @@
       }
 
       var vectorAnchorsOverlayEl = document.getElementById('vector-anchors-overlay');
-      function showVectorAnchorsForLayer(obj) {
+      function showVectorAnchorsForLayer(obj, animate) {
         if (!vectorAnchorsOverlayEl || !obj) return;
         if (obj.getAttribute('type') !== 'image/svg+xml') { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; return; }
         var doc = obj.contentDocument;
@@ -358,15 +358,36 @@
           vectorAnchorsOverlayEl.hidden = true;
           return;
         }
+        var doAnimate = animate !== false;
         var objRect = obj.getBoundingClientRect();
         vectorAnchorsOverlayEl.innerHTML = '';
+        var vpPositions = [];
         for (var i = 0; i < pts.length; i++) {
-          var vpLeft = objRect.left + (pts[i].x / w) * objRect.width;
-          var vpTop = objRect.top + (pts[i].y / h) * objRect.height;
+          vpPositions.push({
+            left: objRect.left + (pts[i].x / w) * objRect.width,
+            top: objRect.top + (pts[i].y / h) * objRect.height
+          });
+        }
+        var minLeft = Infinity, maxLeft = -Infinity;
+        for (var j = 0; j < vpPositions.length; j++) {
+          if (vpPositions[j].left < minLeft) minLeft = vpPositions[j].left;
+          if (vpPositions[j].left > maxLeft) maxLeft = vpPositions[j].left;
+        }
+        var leftRange = maxLeft - minLeft || 1;
+        var staggerDuration = 0.4;
+        for (var k = 0; k < vpPositions.length; k++) {
+          var delay = doAnimate ? ((vpPositions[k].left - minLeft) / leftRange) * staggerDuration : 0;
           var dot = document.createElement('span');
-          dot.className = 'vector-anchor-point';
-          dot.style.left = vpLeft + 'px';
-          dot.style.top = vpTop + 'px';
+          dot.className = 'vector-anchor-point' + (doAnimate ? '' : ' vector-anchor-point--no-animate');
+          dot.style.left = vpPositions[k].left + 'px';
+          dot.style.top = vpPositions[k].top + 'px';
+          dot.style.animationDelay = delay + 's';
+          if (doAnimate) {
+            var gradientLayer = document.createElement('span');
+            gradientLayer.className = 'vector-anchor-point__gradient';
+            gradientLayer.style.animationDelay = delay + 's';
+            dot.appendChild(gradientLayer);
+          }
           vectorAnchorsOverlayEl.appendChild(dot);
         }
         vectorAnchorsOverlayEl.hidden = pts.length === 0;
@@ -376,10 +397,10 @@
         if (vectorAnchorsOverlayEl) { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; }
       }
 
-      function updateVectorAnchorsFromInterpolation() {
+      function updateVectorAnchorsFromInterpolation(animate) {
         var panel = document.getElementById('transform-panel');
         var transformOpen = panel && !panel.hidden;
-        if (getInterpolationValue() === 'vector' && transformOpen) showVectorAnchorsForLayer(getSelectedLayerObject());
+        if (getInterpolationValue() === 'vector' && transformOpen) showVectorAnchorsForLayer(getSelectedLayerObject(), animate !== false);
         else hideVectorAnchors();
       }
 
@@ -495,6 +516,7 @@
               scale = Math.max(0.1, Math.min(500, scale));
               applyUniformScaleToObject(obj, scale);
               updateTransformHandles();
+              if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation(false);
             }
             function onUp(e) {
               if (e.pointerId !== pointerId) return;
