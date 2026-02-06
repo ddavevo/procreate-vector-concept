@@ -837,14 +837,21 @@ body {
 }
 
 .canvas > object.canvas-layer--selected {
-  outline: 0 dashed var(--btn-active);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: none;
 }
 
-/* Show selection outline only when Transform tab is active and handles are visible */
-.app.transform-active .canvas > object.canvas-layer--selected {
-  outline-width: 2px;
+/* Selection outline: fixed overlay so thickness stays constant when object scales (positioned by JS) */
+.selection-outline {
+  position: fixed;
+  pointer-events: none;
+  z-index: 140;
+  border: 2px dashed var(--btn-active);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.selection-outline[hidden] {
+  display: none;
 }
 
 /* Anchor handles: fixed overlay so they align with object corners at any canvas zoom/pan */

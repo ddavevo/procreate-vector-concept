@@ -209,6 +209,9 @@
     </div>
   </div>
 
+  <!-- Selection outline: fixed overlay so outline stays same optical size when object scales (positioned by JS) -->
+  <div class="selection-outline" id="selection-outline" aria-hidden="true" hidden></div>
+
   <!-- Transform handles: fixed overlay so they match object corners at any zoom/pan (positioned by JS from getBoundingClientRect) -->
   <div class="transform-handles" id="transform-handles" aria-hidden="true" hidden>
     <span class="transform-handle transform-handle--nw" data-handle="nw"></span>
@@ -227,6 +230,8 @@
       // ——— CONFIG: Vector complexity ———
       // Max vector (path) points before showing "Too complex" in Interpolation overlay. Increase to allow more points.
       var VECTOR_POINTS_COMPLEXITY_THRESHOLD = 500;
+      // Max anchor points to actually render; above this we sample evenly for performance. Increase if needed.
+      var VECTOR_ANCHORS_MAX_VISIBLE = 180;
 
       var transformBtn = document.getElementById('transform-btn');
       var transformPanel = document.getElementById('transform-panel');
@@ -368,6 +373,15 @@
             top: objRect.top + (pts[i].y / h) * objRect.height
           });
         }
+        if (vpPositions.length > VECTOR_ANCHORS_MAX_VISIBLE) {
+          var sampled = [];
+          var step = (vpPositions.length - 1) / Math.max(1, VECTOR_ANCHORS_MAX_VISIBLE - 1);
+          for (var s = 0; s < VECTOR_ANCHORS_MAX_VISIBLE; s++) {
+            var idx = s === VECTOR_ANCHORS_MAX_VISIBLE - 1 ? vpPositions.length - 1 : Math.min(Math.floor(s * step), vpPositions.length - 1);
+            sampled.push(vpPositions[idx]);
+          }
+          vpPositions = sampled;
+        }
         var minLeft = Infinity, maxLeft = -Infinity;
         for (var j = 0; j < vpPositions.length; j++) {
           if (vpPositions[j].left < minLeft) minLeft = vpPositions[j].left;
@@ -462,16 +476,26 @@
       }
 
       var appEl = document.querySelector('.app');
+      var selectionOutlineEl = document.getElementById('selection-outline');
+      var OUTLINE_OFFSET = 2;
       function updateTransformHandles() {
         var obj = getSelectedLayerObject();
         var isUniform = document.querySelector('.transform-mode[data-mode="uniform"].transform-mode--active') != null;
         var show = !transformPanel.hidden && isUniform && obj && transformHandlesEl;
         if (!show) {
           if (transformHandlesEl) transformHandlesEl.hidden = true;
+          if (selectionOutlineEl) selectionOutlineEl.hidden = true;
           if (appEl) appEl.classList.remove('transform-active');
           return;
         }
         var objRect = obj.getBoundingClientRect();
+        if (selectionOutlineEl) {
+          selectionOutlineEl.style.left = (objRect.left - OUTLINE_OFFSET) + 'px';
+          selectionOutlineEl.style.top = (objRect.top - OUTLINE_OFFSET) + 'px';
+          selectionOutlineEl.style.width = (objRect.width + OUTLINE_OFFSET * 2) + 'px';
+          selectionOutlineEl.style.height = (objRect.height + OUTLINE_OFFSET * 2) + 'px';
+          selectionOutlineEl.hidden = false;
+        }
         var nw = transformHandlesEl.querySelector('.transform-handle--nw');
         var ne = transformHandlesEl.querySelector('.transform-handle--ne');
         var sw = transformHandlesEl.querySelector('.transform-handle--sw');
