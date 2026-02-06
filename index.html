@@ -231,7 +231,7 @@
       // Max vector (path) points before showing "Too complex" in Interpolation overlay. Increase to allow more points.
       var VECTOR_POINTS_COMPLEXITY_THRESHOLD = 500;
       // Max anchor points to actually render; above this we sample evenly for performance. Increase if needed.
-      var VECTOR_ANCHORS_MAX_VISIBLE = 180;
+      var VECTOR_ANCHORS_MAX_VISIBLE = 80;
 
       var transformBtn = document.getElementById('transform-btn');
       var transformPanel = document.getElementById('transform-panel');
@@ -553,6 +553,14 @@
             handle.addEventListener('pointerup', onUp);
             handle.addEventListener('pointercancel', onUp);
           });
+        });
+      }
+
+      var canvasViewport = document.getElementById('canvas-viewport');
+      if (canvasViewport) {
+        canvasViewport.addEventListener('canvastransform', function () {
+          if (typeof updateTransformHandles === 'function') updateTransformHandles();
+          if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation(false);
         });
       }
 

@@ -36,6 +36,7 @@
 
   function applyTransform() {
     transformEl.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+    viewport.dispatchEvent(new CustomEvent('canvastransform'));
   }
 
   function zoomAtCursor(deltaY, clientX, clientY) {
