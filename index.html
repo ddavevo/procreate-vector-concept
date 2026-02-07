@@ -149,6 +149,7 @@
           <object data="assets/sun-halftone.svg" type="image/svg+xml" data-layer-index="1" aria-label="Layer: Sun halftone"></object>
           <object data="assets/sun-outline-inner.svg" type="image/svg+xml" data-layer-index="2" aria-label="Layer: Sun outline inner"></object>
           <object data="assets/sun-outline-outer.svg" type="image/svg+xml" data-layer-index="3" class="canvas-layer--selected" aria-label="Layer: Sun outline outer"></object>
+          <object data="assets/maxmag-raster-logo.png" data-layer-index="4" aria-label="Layer: Logo (raster)"></object>
         </div>
       </div>
     </main>
@@ -223,6 +224,7 @@
   <!-- Vector anchor points overlay (shown only when Interpolation is "Vector" on selected vector layer) -->
   <div class="vector-anchors-overlay" id="vector-anchors-overlay" aria-hidden="true" hidden></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
   <script src="canvas-pan-zoom.js"></script>
   <script src="sidebar-sliders.js"></script>
   <script>
@@ -235,15 +237,78 @@
 
       var transformBtn = document.getElementById('transform-btn');
       var transformPanel = document.getElementById('transform-panel');
+      var canvasViewport = document.getElementById('canvas-viewport');
+      var canvasTransformEl = document.getElementById('canvas-transform');
       if (!transformBtn || !transformPanel) return;
       transformBtn.addEventListener('click', function () {
         var isOpen = !transformPanel.hidden;
         transformPanel.hidden = isOpen;
         transformBtn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
         transformBtn.classList.toggle('ribbon-btn--active', !transformPanel.hidden);
+        if (canvasViewport) canvasViewport.classList.toggle('canvas-wrap--transform-open', !transformPanel.hidden);
         if (typeof updateTransformHandles === 'function') updateTransformHandles();
         if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
       });
+      if (canvasViewport) canvasViewport.classList.toggle('canvas-wrap--transform-open', !transformPanel.hidden);
+
+      /* Move selected object when Transform is open: pointer-drag on selected layer (stops propagation so pan doesn't start) */
+      var moveState = { active: false, obj: null, startClientX: 0, startClientY: 0, startLeft: 0, startTop: 0 };
+      if (canvasViewport && canvasTransformEl) {
+        canvasViewport.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0 || moveState.active) return;
+          if (transformPanel.hidden) return;
+          var obj = getSelectedLayerObject();
+          if (!obj) return;
+          if (e.target !== obj) return;
+          e.preventDefault();
+          e.stopPropagation();
+          var style = window.getComputedStyle(obj);
+          var left = parseFloat(style.left) || 0;
+          var top = parseFloat(style.top) || 0;
+          moveState.active = true;
+          moveState.obj = obj;
+          moveState.startClientX = e.clientX;
+          moveState.startClientY = e.clientY;
+          moveState.startLeft = left;
+          moveState.startTop = top;
+          obj.setPointerCapture(e.pointerId);
+        }, true);
+        canvasViewport.addEventListener('mousedown', function (e) {
+          if (e.button !== 0) return;
+          if (transformPanel.hidden) return;
+          var obj = getSelectedLayerObject();
+          if (!obj) return;
+          if (e.target === obj) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }, true);
+      }
+      document.addEventListener('pointermove', function (e) {
+        if (!moveState.active || !moveState.obj) return;
+        e.preventDefault();
+        var scale = parseFloat(canvasTransformEl && canvasTransformEl.dataset.scale) || 1;
+        var dx = (e.clientX - moveState.startClientX) / scale;
+        var dy = (e.clientY - moveState.startClientY) / scale;
+        moveState.obj.style.left = (moveState.startLeft + dx) + 'px';
+        moveState.obj.style.top = (moveState.startTop + dy) + 'px';
+      });
+      document.addEventListener('pointerup', function (e) {
+        if (moveState.active && moveState.obj) {
+          try { moveState.obj.releasePointerCapture(e.pointerId); } catch (err) {}
+          moveState.active = false;
+          moveState.obj = null;
+          if (typeof updateTransformHandles === 'function') updateTransformHandles();
+          if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation(false);
+        }
+      });
+      document.addEventListener('pointercancel', function (e) {
+        if (moveState.active && moveState.obj) {
+          moveState.active = false;
+          moveState.obj = null;
+        }
+      });
+
       var transformHandlesEl = document.getElementById('transform-handles');
       var HANDLE_HALF = 6;
 
@@ -338,6 +403,17 @@
         return getVectorAnchorsFromSvgDoc(doc).length;
       }
 
+      function countPathPointsInSvgString(svgstr) {
+        if (!svgstr || typeof svgstr !== 'string') return 0;
+        try {
+          var parser = new DOMParser();
+          var doc = parser.parseFromString(svgstr, 'image/svg+xml');
+          return getVectorAnchorsFromSvgDoc(doc).length;
+        } catch (e) {
+          return 0;
+        }
+      }
+
       var vectorAnchorsOverlayEl = document.getElementById('vector-anchors-overlay');
       function showVectorAnchorsForLayer(obj, animate) {
         if (!vectorAnchorsOverlayEl || !obj) return;
@@ -358,7 +434,8 @@
         var w = parseFloat(svg.getAttribute('width')) || (vb ? parseFloat(vb.split(/\s+/)[2]) : 0) || 1;
         var h = parseFloat(svg.getAttribute('height')) || (vb ? parseFloat(vb.split(/\s+/)[3]) : 0) || 1;
         var pts = getVectorAnchorsFromSvgDoc(doc);
-        if (pts.length > VECTOR_POINTS_COMPLEXITY_THRESHOLD) {
+        var isVectorized = obj.getAttribute('data-vectorized') === 'true';
+        if (!isVectorized && pts.length > VECTOR_POINTS_COMPLEXITY_THRESHOLD) {
           vectorAnchorsOverlayEl.innerHTML = '';
           vectorAnchorsOverlayEl.hidden = true;
           return;
@@ -421,22 +498,34 @@
       function updateVectorOptionAppearance() {
         var obj = getSelectedLayerObject();
         var isVector = obj && obj.getAttribute('type') === 'image/svg+xml';
+        var isRaster = obj && !isVector && obj.getAttribute('data');
         var pointCount = getVectorPointCount(obj);
-        var tooComplex = !isVector || pointCount > VECTOR_POINTS_COMPLEXITY_THRESHOLD;
+        var isVectorized = obj && obj.getAttribute('data-vectorized') === 'true';
+        var tooComplex = isVector && !isVectorized && pointCount > VECTOR_POINTS_COMPLEXITY_THRESHOLD;
         var vectorOpt = document.querySelector('.interpolation-option[data-value="vector"]');
         if (!vectorOpt) return;
         var suffix = vectorOpt.querySelector('.interpolation-option__suffix');
         var check = vectorOpt.querySelector('.interpolation-option__check');
-        if (tooComplex) {
+        var label = vectorOpt.querySelector('.interpolation-option__label');
+        if (isRaster) {
+          vectorOpt.classList.remove('interpolation-option--too-complex');
+          vectorOpt.setAttribute('aria-disabled', 'false');
+          vectorOpt.disabled = false;
+          if (label) label.textContent = 'Vectorize';
+          if (suffix) { suffix.hidden = true; }
+          if (check) check.hidden = true;
+        } else if (tooComplex) {
           vectorOpt.classList.add('interpolation-option--too-complex');
           vectorOpt.setAttribute('aria-disabled', 'true');
           vectorOpt.disabled = true;
+          if (label) label.textContent = 'Vector';
           if (suffix) { suffix.hidden = false; suffix.textContent = 'Too complex'; }
           if (check) check.hidden = true;
         } else {
           vectorOpt.classList.remove('interpolation-option--too-complex');
           vectorOpt.setAttribute('aria-disabled', 'false');
           vectorOpt.disabled = false;
+          if (label) label.textContent = 'Vector';
           if (suffix) suffix.hidden = true;
           if (check) check.hidden = false;
         }
@@ -589,6 +678,24 @@
           opt.addEventListener('click', function () {
             if (this.classList.contains('interpolation-option--too-complex')) return;
             var newValue = this.getAttribute('data-value');
+            var obj = getSelectedLayerObject();
+            var isRaster = obj && obj.getAttribute('type') !== 'image/svg+xml' && obj.getAttribute('data');
+            if (newValue === 'vector' && isRaster) {
+              var vectorOpt = document.querySelector('.interpolation-option[data-value="vector"]');
+              var vectorLabel = vectorOpt && vectorOpt.querySelector('.interpolation-option__label');
+              if (vectorLabel) vectorLabel.textContent = 'Tracing…';
+              runVectorizeForSelectedLayer(function () {
+                if (vectorLabel) vectorLabel.textContent = 'Vectorize';
+                interpolationPanel.hidden = true;
+                interpolationBtn.setAttribute('aria-expanded', 'false');
+                interpolationBtn.classList.remove('transform-action--active');
+                if (typeof switchInterpolationTo === 'function') switchInterpolationTo('vector');
+                if (interpolationLabel) interpolationLabel.textContent = 'Vector';
+                if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
+                if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
+              });
+              return;
+            }
             document.querySelectorAll('.interpolation-option').forEach(function (o) {
               o.classList.remove('interpolation-option--selected');
               o.setAttribute('aria-selected', 'false');
@@ -607,9 +714,82 @@
         });
       }
 
+      function runVectorizeForSelectedLayer(doneCallback) {
+        var obj = getSelectedLayerObject();
+        if (!obj || obj.getAttribute('type') === 'image/svg+xml') { if (doneCallback) doneCallback(); return; }
+        var dataSrc = obj.getAttribute('data');
+        if (!dataSrc) { if (doneCallback) doneCallback(); return; }
+        var canvasEl = document.getElementById('canvas-layers');
+        if (!canvasEl) { if (doneCallback) doneCallback(); return; }
+        var objects = Array.prototype.slice.call(canvasEl.querySelectorAll('object[data-layer-index]'));
+        var currentIndex = objects.indexOf(obj);
+        if (currentIndex === -1) { if (doneCallback) doneCallback(); return; }
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function () {
+          var naturalW = img.naturalWidth;
+          var naturalH = img.naturalHeight;
+          var traceAttempts = [
+            { maxSize: 280, opts: { numberofcolors: 4, ltres: 2, qtres: 2, pathomit: 16, roundcoords: 2, blurradius: 2, scale: 1 } },
+            { maxSize: 200, opts: { numberofcolors: 2, ltres: 5, qtres: 5, pathomit: 24, roundcoords: 3, blurradius: 3, scale: 1 } },
+            { maxSize: 150, opts: { numberofcolors: 2, ltres: 10, qtres: 10, pathomit: 32, roundcoords: 3, blurradius: 4, scale: 1 } }
+          ];
+          var w, h;
+          var svgstr = '';
+          for (var attempt = 0; attempt < traceAttempts.length; attempt++) {
+            var maxSize = traceAttempts[attempt].maxSize;
+            w = naturalW;
+            h = naturalH;
+            if (w > maxSize || h > maxSize) {
+              var r = Math.min(maxSize / naturalW, maxSize / naturalH);
+              w = Math.round(naturalW * r);
+              h = Math.round(naturalH * r);
+            }
+            var canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            var imgData = ctx.getImageData(0, 0, w, h);
+            if (typeof ImageTracer !== 'undefined' && ImageTracer.imagedataToSVG) {
+              try {
+                svgstr = ImageTracer.imagedataToSVG(imgData, traceAttempts[attempt].opts);
+              } catch (e) {
+                svgstr = '';
+              }
+            }
+            if (!svgstr) continue;
+            var pointCount = countPathPointsInSvgString(svgstr);
+            if (pointCount <= VECTOR_POINTS_COMPLEXITY_THRESHOLD) break;
+          }
+          if (!svgstr) { if (doneCallback) doneCallback(); return; }
+          var blob = new Blob([svgstr], { type: 'image/svg+xml' });
+          var blobUrl = URL.createObjectURL(blob);
+          var newObj = document.createElement('object');
+          newObj.setAttribute('data', blobUrl);
+          newObj.setAttribute('type', 'image/svg+xml');
+          newObj.setAttribute('aria-label', 'Layer: Vectorized');
+          newObj.setAttribute('data-vectorized', 'true');
+          newObj.classList.add('canvas-layer--selected');
+          obj.classList.remove('canvas-layer--selected');
+          obj.parentNode.insertBefore(newObj, obj.nextSibling);
+          var allObjs = canvasEl.querySelectorAll('object');
+          for (var i = 0; i < allObjs.length; i++) allObjs[i].setAttribute('data-layer-index', String(i));
+          var newLayerIndex = currentIndex + 1;
+          if (typeof rebuildLayersOverlay === 'function') rebuildLayersOverlay(newLayerIndex);
+          if (typeof updateTransformHandles === 'function') updateTransformHandles();
+          if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
+          if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
+          if (doneCallback) doneCallback();
+        };
+        img.onerror = function () { if (doneCallback) doneCallback(); };
+        img.src = dataSrc;
+      }
+
       /* Layers overlay: open/close from Layers button, positioned below and centered on button */
       var layersBtn = document.getElementById('layers-btn');
       var layersOverlay = document.getElementById('layers-overlay');
+      var rebuildLayersOverlay;
       if (layersBtn && layersOverlay) {
         function positionLayersOverlay() {
           if (layersOverlay.hidden) return;
@@ -644,36 +824,67 @@
           if (!layersOverlay.hidden) positionLayersOverlay();
         });
         var canvasEl = document.getElementById('canvas-layers');
-        document.querySelectorAll('.layers-overlay__list .layers-row').forEach(function (row) {
-          row.addEventListener('click', function () {
-            var index = row.getAttribute('data-canvas-index');
-            if (index == null || !canvasEl) return;
-            var objects = canvasEl.querySelectorAll('object[data-layer-index]');
-            var targetObject = objects[parseInt(index, 10)];
-            document.querySelectorAll('.layers-overlay__list .layers-row').forEach(function (r) {
-              r.classList.remove('layers-row--selected');
-              r.setAttribute('aria-selected', 'false');
-            });
-            objects.forEach(function (obj) { obj.classList.remove('canvas-layer--selected'); });
-            this.classList.add('layers-row--selected');
-            this.setAttribute('aria-selected', 'true');
-            if (targetObject) targetObject.classList.add('canvas-layer--selected');
-            if (typeof updateTransformHandles === 'function') updateTransformHandles();
-            if (getInterpolationValue() === 'vector' && targetObject) {
-              var count = getVectorPointCount(targetObject);
-              var isVectorLayer = targetObject.getAttribute('type') === 'image/svg+xml';
-              if (!isVectorLayer || count > VECTOR_POINTS_COMPLEXITY_THRESHOLD) {
+        var layersList = layersOverlay.querySelector('.layers-overlay__list');
+        function handleLayerRowClick(row) {
+          var index = row.getAttribute('data-canvas-index');
+          if (index == null || !canvasEl) return;
+          var objects = canvasEl.querySelectorAll('object[data-layer-index]');
+          var targetObject = objects[parseInt(index, 10)];
+          if (!targetObject) return;
+          var rows = layersList.querySelectorAll('.layers-row');
+          rows.forEach(function (r) {
+            r.classList.remove('layers-row--selected');
+            r.setAttribute('aria-selected', 'false');
+          });
+          objects.forEach(function (o) { o.classList.remove('canvas-layer--selected'); });
+          row.classList.add('layers-row--selected');
+          row.setAttribute('aria-selected', 'true');
+          targetObject.classList.add('canvas-layer--selected');
+          if (typeof updateTransformHandles === 'function') updateTransformHandles();
+          if (getInterpolationValue() === 'vector' && targetObject) {
+            var count = getVectorPointCount(targetObject);
+            var isVectorLayer = targetObject.getAttribute('type') === 'image/svg+xml';
+            var isVectorized = targetObject.getAttribute('data-vectorized') === 'true';
+            if (!isVectorLayer || (!isVectorized && count > VECTOR_POINTS_COMPLEXITY_THRESHOLD)) {
                 if (typeof switchInterpolationTo === 'function') switchInterpolationTo('bicubic');
                 if (typeof hideVectorAnchors === 'function') hideVectorAnchors();
               } else {
-                if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
-              }
-            } else {
               if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
             }
-            if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
+          } else {
+            if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
+          }
+          if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
+        }
+        if (layersList) {
+          layersList.addEventListener('click', function (e) {
+            var row = e.target && e.target.closest && e.target.closest('.layers-row');
+            if (row) handleLayerRowClick(row);
           });
-        });
+        }
+        rebuildLayersOverlay = function (selectIndex) {
+          if (!canvasEl || !layersList) return;
+          var objects = canvasEl.querySelectorAll('object[data-layer-index]');
+          var n = objects.length;
+          var selectedObj = getSelectedLayerObject();
+          var selectedIdx = selectIndex != null ? selectIndex : (selectedObj ? parseInt(selectedObj.getAttribute('data-layer-index'), 10) : 0);
+          if (selectedIdx < 0 || selectedIdx >= n) selectedIdx = n - 1;
+          layersList.innerHTML = '';
+          for (var i = n - 1; i >= 0; i--) {
+            var row = document.createElement('button');
+            row.type = 'button';
+            row.className = 'layers-row' + (i === selectedIdx ? ' layers-row--selected' : '');
+            row.setAttribute('role', 'option');
+            row.setAttribute('data-canvas-index', String(i));
+            row.setAttribute('aria-selected', i === selectedIdx ? 'true' : 'false');
+            row.innerHTML = '<div class="layers-row__left"><span class="layers-row__thumb" aria-hidden="true"></span><span class="layers-row__name">Layer ' + (n - i) + '</span></div><div class="layers-row__right"><span class="layers-row__blend" aria-hidden="true">N</span><span class="layers-row__visibility" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M5 8l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div>';
+            layersList.appendChild(row);
+          }
+          objects.forEach(function (o) { o.classList.remove('canvas-layer--selected'); });
+          if (objects[selectedIdx]) objects[selectedIdx].classList.add('canvas-layer--selected');
+          if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
+        };
+        rebuildLayersOverlay();
       }
     })();
   </script>

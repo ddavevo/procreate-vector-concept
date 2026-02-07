@@ -583,6 +583,18 @@ body {
   color: var(--btn-fg);
 }
 
+.transform-action--disabled,
+.transform-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--ribbon-icon);
+}
+
+.transform-action--disabled:hover,
+.transform-action:disabled:hover {
+  color: var(--ribbon-icon);
+}
+
 /* Interpolation button: icon only turns active blue while overlay is open */
 .transform-action--active object {
   filter: brightness(0) saturate(100%) invert(29%) sepia(84%) saturate(3287%) hue-rotate(202deg) brightness(106%) contrast(103%);
@@ -788,6 +800,10 @@ body {
 
 .canvas-wrap:active {
   cursor: grabbing;
+}
+
+.canvas-wrap--transform-open .canvas-layer--selected {
+  cursor: move;
 }
 
 .canvas-transform {
