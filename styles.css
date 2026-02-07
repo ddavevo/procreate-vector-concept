@@ -858,8 +858,17 @@ body {
   top: 70px;
 }
 
+.canvas > object:nth-child(4) {
+  left: 120px;
+  top: 144px;
+}
+
 .canvas > object.canvas-layer--selected {
   outline: none;
+}
+
+.canvas > object.canvas-layer--hidden {
+  display: none;
 }
 
 /* Selection outline: fixed overlay so thickness stays constant when object scales (positioned by JS) */

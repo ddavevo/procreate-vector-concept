@@ -856,7 +856,33 @@
         }
         if (layersList) {
           layersList.addEventListener('click', function (e) {
-            if (e.target && e.target.closest && e.target.closest('.layers-row__visibility')) return;
+            var visibilityBtn = e.target && e.target.closest && e.target.closest('.layers-row__visibility');
+            if (visibilityBtn) {
+              e.preventDefault();
+              e.stopPropagation();
+              var row = visibilityBtn.closest('.layers-row');
+              if (!row || !canvasEl) return;
+              var index = row.getAttribute('data-canvas-index');
+              if (index == null) return;
+              var objects = canvasEl.querySelectorAll('object[data-layer-index]');
+              var obj = objects[parseInt(index, 10)];
+              if (!obj) return;
+              var isHidden = obj.classList.contains('canvas-layer--hidden');
+              var iconObj = visibilityBtn.querySelector('object');
+              if (isHidden) {
+                obj.classList.remove('canvas-layer--hidden');
+                obj.setAttribute('data-layer-visible', 'true');
+                if (iconObj) iconObj.setAttribute('data', 'assets/icons/Layer-visibility-toggle-on.svg');
+                visibilityBtn.setAttribute('aria-label', 'Hide layer');
+              } else {
+                obj.classList.add('canvas-layer--hidden');
+                obj.setAttribute('data-layer-visible', 'false');
+                if (iconObj) iconObj.setAttribute('data', 'assets/icons/Layer-visibility-toggle-off.svg');
+                visibilityBtn.setAttribute('aria-label', 'Show layer');
+              }
+              if (typeof updateTransformHandles === 'function') updateTransformHandles();
+              return;
+            }
             var row = e.target && e.target.closest && e.target.closest('.layers-row');
             if (row) handleLayerRowClick(row);
           });
@@ -884,11 +910,19 @@
             row.setAttribute('tabindex', '0');
             row.setAttribute('data-canvas-index', String(i));
             row.setAttribute('aria-selected', i === selectedIdx ? 'true' : 'false');
-            row.innerHTML = '<div class="layers-row__left"><span class="layers-row__thumb" aria-hidden="true"></span><span class="layers-row__name">Layer ' + (n - i) + '</span></div><div class="layers-row__right"><span class="layers-row__blend" aria-hidden="true">N</span><button class="layers-row__visibility" type="button" aria-label="Toggle visibility"><object data="assets/icons/Layer-visibility-toggle-on.svg" type="image/svg+xml" width="16" height="16" aria-hidden="true"></object></button></div>';
+            var visible = objects[i].getAttribute('data-layer-visible') !== 'false';
+            var visibilityIcon = visible ? 'assets/icons/Layer-visibility-toggle-on.svg' : 'assets/icons/Layer-visibility-toggle-off.svg';
+            var visibilityLabel = visible ? 'Hide layer' : 'Show layer';
+            row.innerHTML = '<div class="layers-row__left"><span class="layers-row__thumb" aria-hidden="true"></span><span class="layers-row__name">Layer ' + (n - i) + '</span></div><div class="layers-row__right"><span class="layers-row__blend" aria-hidden="true">N</span><button class="layers-row__visibility" type="button" aria-label="' + visibilityLabel + '"><object data="' + visibilityIcon + '" type="image/svg+xml" width="16" height="16" aria-hidden="true"></object></button></div>';
             layersList.appendChild(row);
           }
-          objects.forEach(function (o) { o.classList.remove('canvas-layer--selected'); });
+          objects.forEach(function (o) {
+            o.classList.remove('canvas-layer--selected');
+            if (o.getAttribute('data-layer-visible') === 'false') o.classList.add('canvas-layer--hidden');
+            else o.classList.remove('canvas-layer--hidden');
+          });
           if (objects[selectedIdx]) objects[selectedIdx].classList.add('canvas-layer--selected');
+          if (typeof updateTransformHandles === 'function') updateTransformHandles();
           if (typeof updateVectorOptionAppearance === 'function') updateVectorOptionAppearance();
         };
         rebuildLayersOverlay();
