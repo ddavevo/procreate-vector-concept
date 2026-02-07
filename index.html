@@ -145,7 +145,7 @@
     <main class="canvas-wrap" id="canvas-viewport">
       <div class="canvas-transform" id="canvas-transform">
         <div class="canvas" id="canvas-layers">
-          <object data="assets/Regular_Sunny.png" data-layer-index="0" aria-label="Layer: Background Raster"></object>
+          <object data="assets/snowflake-2.png" data-layer-index="0" aria-label="Layer: Background Raster"></object>
           <object data="assets/sun-halftone.svg" type="image/svg+xml" data-layer-index="1" aria-label="Layer: Sun halftone"></object>
           <object data="assets/sun-outline-outer.svg" type="image/svg+xml" data-layer-index="2" class="canvas-layer--selected" aria-label="Layer: Sun outline outer"></object>
           <object data="assets/sun-outline-inner.svg" type="image/svg+xml" data-layer-index="3" aria-label="Layer: Sun outline inner"></object>
@@ -248,57 +248,87 @@
 
       /* Move selected object when Transform is open: pointer-drag on selected layer (stops propagation so pan doesn't start) */
       var moveState = { active: false, obj: null, startClientX: 0, startClientY: 0, startLeft: 0, startTop: 0 };
-      if (canvasViewport && canvasTransformEl) {
-        function hitTestSelectedObject(clientX, clientY) {
-          var obj = getSelectedLayerObject();
-          if (!obj) return false;
-          var rect = obj.getBoundingClientRect();
-          return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
-        }
-        canvasViewport.addEventListener('pointerdown', function (e) {
-          if (e.button !== 0 || moveState.active) return;
-          if (transformPanel.hidden) return;
-          var obj = getSelectedLayerObject();
-          if (!obj) return;
-          if (!hitTestSelectedObject(e.clientX, e.clientY)) return;
-          e.preventDefault();
-          e.stopPropagation();
-          var style = window.getComputedStyle(obj);
-          var left = parseFloat(style.left) || 0;
-          var top = parseFloat(style.top) || 0;
-          moveState.active = true;
-          moveState.obj = obj;
-          moveState.startClientX = e.clientX;
-          moveState.startClientY = e.clientY;
-          moveState.startLeft = left;
-          moveState.startTop = top;
-          obj.setPointerCapture(e.pointerId);
-        }, true);
-        canvasViewport.addEventListener('mousedown', function (e) {
-          if (e.button !== 0) return;
-          if (transformPanel.hidden) return;
-          if (!hitTestSelectedObject(e.clientX, e.clientY)) return;
-          e.preventDefault();
-          e.stopPropagation();
-        }, true);
+      function hitTestSelectedObject(clientX, clientY) {
+        var obj = getSelectedLayerObject();
+        if (!obj) return false;
+        if (obj.classList.contains('canvas-layer--hidden')) return false;
+        var rect = obj.getBoundingClientRect();
+        return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
       }
-      document.addEventListener('pointermove', function (e) {
-        if (!moveState.active || !moveState.obj) return;
+      function isClickOnCanvasViewport(target) {
+        if (!canvasViewport || !target) return false;
+        if (canvasViewport.contains(target)) return true;
+        var doc = target.ownerDocument;
+        if (doc && doc !== document) {
+          var canvasEl = document.getElementById('canvas-layers');
+          if (canvasEl) {
+            var objects = canvasEl.querySelectorAll('object[data-layer-index]');
+            for (var i = 0; i < objects.length; i++) {
+              if (objects[i].contentDocument === doc) return true;
+            }
+          }
+        }
+        return false;
+      }
+      function startMoveIfHit(e) {
+        if (e.button !== 0 || moveState.active) return;
+        if (transformPanel.hidden) return;
+        if (!canvasViewport || !canvasTransformEl) return;
+        if (!isClickOnCanvasViewport(e.target)) return;
+        var obj = getSelectedLayerObject();
+        if (!obj || obj.classList.contains('canvas-layer--hidden')) return;
         e.preventDefault();
+        e.stopPropagation();
+        var style = window.getComputedStyle(obj);
+        var left = parseFloat(style.left) || 0;
+        var top = parseFloat(style.top) || 0;
+        moveState.active = true;
+        moveState.obj = obj;
+        moveState.startClientX = e.clientX;
+        moveState.startClientY = e.clientY;
+        moveState.startLeft = left;
+        moveState.startTop = top;
+        if (e.pointerId !== undefined) {
+          try { obj.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+      }
+      document.addEventListener('pointerdown', startMoveIfHit, true);
+      document.addEventListener('mousedown', startMoveIfHit, true);
+      function doMove(clientX, clientY) {
+        if (!moveState.active || !moveState.obj) return;
         var scale = parseFloat(canvasTransformEl && canvasTransformEl.dataset.scale) || 1;
-        var dx = (e.clientX - moveState.startClientX) / scale;
-        var dy = (e.clientY - moveState.startClientY) / scale;
+        var dx = (clientX - moveState.startClientX) / scale;
+        var dy = (clientY - moveState.startClientY) / scale;
         moveState.obj.style.left = (moveState.startLeft + dx) + 'px';
         moveState.obj.style.top = (moveState.startTop + dy) + 'px';
-      });
-      document.addEventListener('pointerup', function (e) {
+      }
+      function endMove() {
         if (moveState.active && moveState.obj) {
-          try { moveState.obj.releasePointerCapture(e.pointerId); } catch (err) {}
           moveState.active = false;
           moveState.obj = null;
           if (typeof updateTransformHandles === 'function') updateTransformHandles();
           if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation(false);
         }
+      }
+      document.addEventListener('pointermove', function (e) {
+        if (!moveState.active || !moveState.obj) return;
+        e.preventDefault();
+        doMove(e.clientX, e.clientY);
+      });
+      document.addEventListener('pointerup', function (e) {
+        if (moveState.active && moveState.obj) {
+          try { moveState.obj.releasePointerCapture(e.pointerId); } catch (err) {}
+          endMove();
+        }
+      });
+      document.addEventListener('mousemove', function (e) {
+        if (!moveState.active || !moveState.obj) return;
+        e.preventDefault();
+        doMove(e.clientX, e.clientY);
+      });
+      document.addEventListener('mouseup', function (e) {
+        if (e.button !== 0) return;
+        endMove();
       });
       document.addEventListener('pointercancel', function (e) {
         if (moveState.active && moveState.obj) {
@@ -879,6 +909,17 @@
                 obj.setAttribute('data-layer-visible', 'false');
                 if (iconObj) iconObj.setAttribute('data', 'assets/icons/Layer-visibility-toggle-off.svg');
                 visibilityBtn.setAttribute('aria-label', 'Show layer');
+                var selectedNow = getSelectedLayerObject();
+                if (selectedNow === obj && objects.length > 1) {
+                  for (var k = 0; k < objects.length; k++) {
+                    if (objects[k] !== obj && !objects[k].classList.contains('canvas-layer--hidden')) {
+                      objects.forEach(function (o) { o.classList.remove('canvas-layer--selected'); });
+                      objects[k].classList.add('canvas-layer--selected');
+                      if (typeof rebuildLayersOverlay === 'function') rebuildLayersOverlay(k);
+                      break;
+                    }
+                  }
+                }
               }
               if (typeof updateTransformHandles === 'function') updateTransformHandles();
               return;

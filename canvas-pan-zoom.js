@@ -74,6 +74,17 @@
 
   viewport.addEventListener('mousedown', function (e) {
     if (e.button !== 0) return;
+    const panel = document.getElementById('transform-panel');
+    if (panel && !panel.hidden) {
+      const canvasEl = document.getElementById('canvas-layers');
+      const selected = canvasEl && canvasEl.querySelector('.canvas-layer--selected');
+      if (selected && !selected.classList.contains('canvas-layer--hidden')) {
+        const r = selected.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+          return;
+        }
+      }
+    }
     e.preventDefault();
     isDragging = true;
     lastClientX = e.clientX;
