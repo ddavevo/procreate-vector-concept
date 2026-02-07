@@ -403,6 +403,29 @@ body {
   align-items: center;
 }
 
+.layers-row__visibility {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.layers-row__visibility object {
+  display: block;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+.layers-row--selected .layers-row__visibility object {
+  filter: brightness(0) invert(1);
+}
+
 .layers-row {
   display: flex;
   align-items: center;
@@ -460,8 +483,10 @@ body {
 }
 
 .layers-row__blend {
-  font-size: 13px;
-  font-weight: 500;
+  width: 24px; height: 24px;
+  font-size: 14px;
+  text-align: center; line-height: 24px;
+  border-radius: 2px;
   color: inherit;
   opacity: 0.8;
 }
@@ -485,20 +510,6 @@ body {
 
 .layers-row:not(.layers-row--group) .layers-row__expand {
   display: none;
-}
-
-.layers-row__visibility {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: inherit;
-  opacity: 0.9;
-}
-
-.layers-row__visibility svg {
-  width: 16px;
-  height: 16px;
 }
 
 /* Hide blend on Background Color row (no N) */
@@ -843,11 +854,6 @@ body {
 }
 
 .canvas > object:nth-child(3) {
-  left: 116px;
-  top: 144px;
-}
-
-.canvas > object:nth-child(4) {
   left: 40px;
   top: 70px;
 }
