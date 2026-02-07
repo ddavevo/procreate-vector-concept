@@ -254,12 +254,18 @@
       /* Move selected object when Transform is open: pointer-drag on selected layer (stops propagation so pan doesn't start) */
       var moveState = { active: false, obj: null, startClientX: 0, startClientY: 0, startLeft: 0, startTop: 0 };
       if (canvasViewport && canvasTransformEl) {
+        function hitTestSelectedObject(clientX, clientY) {
+          var obj = getSelectedLayerObject();
+          if (!obj) return false;
+          var rect = obj.getBoundingClientRect();
+          return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+        }
         canvasViewport.addEventListener('pointerdown', function (e) {
           if (e.button !== 0 || moveState.active) return;
           if (transformPanel.hidden) return;
           var obj = getSelectedLayerObject();
           if (!obj) return;
-          if (e.target !== obj) return;
+          if (!hitTestSelectedObject(e.clientX, e.clientY)) return;
           e.preventDefault();
           e.stopPropagation();
           var style = window.getComputedStyle(obj);
@@ -276,12 +282,9 @@
         canvasViewport.addEventListener('mousedown', function (e) {
           if (e.button !== 0) return;
           if (transformPanel.hidden) return;
-          var obj = getSelectedLayerObject();
-          if (!obj) return;
-          if (e.target === obj) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
+          if (!hitTestSelectedObject(e.clientX, e.clientY)) return;
+          e.preventDefault();
+          e.stopPropagation();
         }, true);
       }
       document.addEventListener('pointermove', function (e) {
