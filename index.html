@@ -146,7 +146,7 @@
       <div class="canvas-transform" id="canvas-transform">
         <div class="canvas" id="canvas-layers">
           <object data="assets/Regular_Sunny.png" data-layer-index="0" aria-label="Layer: Background Raster"></object>
-          <object data="assets/maxmag-raster-logo.png" data-layer-index="1" aria-label="Layer: MaxMag Logo"></object>
+          <object data="assets/Hairball-raster-logo.png" data-layer-index="1" aria-label="Layer: MaxMag Logo"></object>
           <!--
           <object data="assets/sun-halftone.svg" type="image/svg+xml" data-layer-index="1" aria-label="Layer: Sun halftone"></object>
           <object data="assets/sun-outline-outer.svg" type="image/svg+xml" data-layer-index="2" class="canvas-layer--selected" aria-label="Layer: Sun outline outer"></object>
@@ -843,11 +843,39 @@
         return scale != null ? parseInt(scale, 10) : 100;
       }
 
-      function applyUniformScaleToObject(obj, percent) {
+      function applyUniformScaleToObject(obj, percent, origin) {
         if (!obj) return;
+        if (origin != null) obj.style.transformOrigin = origin;
         var s = percent / 100;
         obj.style.transform = 'scale(' + s + ')';
         obj.setAttribute('data-uniform-scale', String(percent));
+      }
+
+      /** Screen position of the opposite corner (fixed point) for the given handle. */
+      function getFixedPointForHandle(objRect, handle) {
+        switch (handle) {
+          case 'se': return { x: objRect.left, y: objRect.top };
+          case 'sw': return { x: objRect.right, y: objRect.top };
+          case 'nw': return { x: objRect.right, y: objRect.bottom };
+          case 'ne': return { x: objRect.left, y: objRect.bottom };
+          default: return { x: objRect.left + objRect.width / 2, y: objRect.top + objRect.height / 2 };
+        }
+      }
+
+      /** With transform-origin center, compute left/top so the opposite corner stays fixed when scale changes from initialScale to scalePercent. */
+      function positionForScaleFromHandle(handle, startLeft, startTop, unscaledW, unscaledH, scalePercent, initialScalePercent) {
+        var S = scalePercent / 100;
+        var S0 = (initialScalePercent || 100) / 100;
+        var d = S - S0;
+        var halfW = unscaledW / 2;
+        var halfH = unscaledH / 2;
+        switch (handle) {
+          case 'se': return { left: startLeft + halfW * d, top: startTop + halfH * d };
+          case 'sw': return { left: startLeft - halfW * d, top: startTop + halfH * d };
+          case 'ne': return { left: startLeft + halfW * d, top: startTop - halfH * d };
+          case 'nw': return { left: startLeft - halfW * d, top: startTop - halfH * d };
+          default: return { left: startLeft, top: startTop };
+        }
       }
 
       function distance(x1, y1, x2, y2) {
@@ -896,41 +924,51 @@
       });
 
       if (transformHandlesEl) {
-        transformHandlesEl.querySelectorAll('.transform-handle').forEach(function (handle) {
-          handle.addEventListener('pointerdown', function (e) {
+        transformHandlesEl.querySelectorAll('.transform-handle').forEach(function (handleEl) {
+          handleEl.addEventListener('pointerdown', function (e) {
             if (e.button !== 0) return;
             e.preventDefault();
             e.stopPropagation();
             var obj = getSelectedLayerObject();
             if (!obj) return;
             var pointerId = e.pointerId;
-            handle.setPointerCapture(pointerId);
+            handleEl.setPointerCapture(pointerId);
             var objRect = obj.getBoundingClientRect();
-            var centerX = objRect.left + objRect.width / 2;
-            var centerY = objRect.top + objRect.height / 2;
-            var initialDist = Math.max(distance(centerX, centerY, e.clientX, e.clientY), 2);
+            var handle = (handleEl.dataset && handleEl.dataset.handle) || handleEl.getAttribute('data-handle') || 'se';
+            var fixed = getFixedPointForHandle(objRect, handle);
+            var initialDist = Math.max(distance(fixed.x, fixed.y, e.clientX, e.clientY), 2);
             var initialScale = getUniformScaleFromObject(obj);
+            var style = window.getComputedStyle(obj);
+            var startLeft = parseFloat(style.left) || 0;
+            var startTop = parseFloat(style.top) || 0;
+            var S0 = initialScale / 100;
+            var canvasScale = parseFloat(canvasTransformEl && canvasTransformEl.dataset.scale) || 1;
+            var unscaledW = objRect.width / (S0 * canvasScale);
+            var unscaledH = objRect.height / (S0 * canvasScale);
 
             function onMove(e) {
               if (e.pointerId !== pointerId) return;
               e.preventDefault();
-              var currentDist = Math.max(distance(centerX, centerY, e.clientX, e.clientY), 1);
+              var currentDist = Math.max(distance(fixed.x, fixed.y, e.clientX, e.clientY), 1);
               var scale = initialScale * (currentDist / initialDist);
               scale = Math.max(0.1, Math.min(500, scale));
+              var pos = positionForScaleFromHandle(handle, startLeft, startTop, unscaledW, unscaledH, scale, initialScale);
+              obj.style.left = pos.left + 'px';
+              obj.style.top = pos.top + 'px';
               applyUniformScaleToObject(obj, scale);
               updateTransformHandles();
               if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation(false);
             }
             function onUp(e) {
               if (e.pointerId !== pointerId) return;
-              handle.releasePointerCapture(pointerId);
-              handle.removeEventListener('pointermove', onMove);
-              handle.removeEventListener('pointerup', onUp);
-              handle.removeEventListener('pointercancel', onUp);
+              handleEl.releasePointerCapture(pointerId);
+              handleEl.removeEventListener('pointermove', onMove);
+              handleEl.removeEventListener('pointerup', onUp);
+              handleEl.removeEventListener('pointercancel', onUp);
             }
-            handle.addEventListener('pointermove', onMove);
-            handle.addEventListener('pointerup', onUp);
-            handle.addEventListener('pointercancel', onUp);
+            handleEl.addEventListener('pointermove', onMove);
+            handleEl.addEventListener('pointerup', onUp);
+            handleEl.addEventListener('pointercancel', onUp);
           });
         });
       }
