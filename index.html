@@ -145,10 +145,13 @@
     <main class="canvas-wrap" id="canvas-viewport">
       <div class="canvas-transform" id="canvas-transform">
         <div class="canvas" id="canvas-layers">
-          <object data="assets/snowflake-2.png" data-layer-index="0" aria-label="Layer: Background Raster"></object>
+          <object data="assets/Regular_Sunny.png" data-layer-index="0" aria-label="Layer: Background Raster"></object>
+          <object data="assets/maxmag-raster-logo.png" data-layer-index="1" aria-label="Layer: MaxMag Logo"></object>
+          <!--
           <object data="assets/sun-halftone.svg" type="image/svg+xml" data-layer-index="1" aria-label="Layer: Sun halftone"></object>
           <object data="assets/sun-outline-outer.svg" type="image/svg+xml" data-layer-index="2" class="canvas-layer--selected" aria-label="Layer: Sun outline outer"></object>
           <object data="assets/sun-outline-inner.svg" type="image/svg+xml" data-layer-index="3" aria-label="Layer: Sun outline inner"></object>
+          -->
         </div>
       </div>
     </main>
@@ -274,6 +277,14 @@
         if (e.button !== 0 || moveState.active) return;
         if (transformPanel.hidden) return;
         if (!canvasViewport || !canvasTransformEl) return;
+        if (vectorAnchorsOverlayEl && !vectorAnchorsOverlayEl.hidden && currentVpPositions && currentVpPositions.length > 0) {
+          var cx = e.clientX, cy = e.clientY;
+          for (var ai = 0; ai < currentVpPositions.length; ai++) {
+            var vp = currentVpPositions[ai];
+            var dx = cx - vp.left, dy = cy - vp.top;
+            if (dx * dx + dy * dy <= ANCHOR_HIT_RADIUS * ANCHOR_HIT_RADIUS) return;
+          }
+        }
         if (!isClickOnCanvasViewport(e.target)) return;
         var obj = getSelectedLayerObject();
         if (!obj || obj.classList.contains('canvas-layer--hidden')) return;
@@ -413,6 +424,153 @@
         return points;
       }
 
+      /** Parse path d into editable commands (for anchor move). Only updates path.setAttribute('d') so fill/stroke are preserved. */
+      function parsePathDToCommands(d) {
+        if (!d || typeof d !== 'string') return [];
+        var commands = [];
+        var tokens = d.replace(/,/g, ' ').match(/[-+]?[0-9]*\.?[0-9]+(?:e[-+]?[0-9]+)?|[MmLlHhVvCcSsQqTtAaZz]/gi) || [];
+        var i = 0;
+        var px = 0, py = 0, x0 = 0, y0 = 0;
+        function nextNum() {
+          while (i < tokens.length) {
+            var t = tokens[i];
+            if (t != null && t.length > 0 && (t === '-' || t === '+' || /^[0-9]/.test(t))) return parseFloat(tokens[i++]);
+            if (t != null && /^[MmLlHhVvCcSsQqTtAaZz]$/i.test(t)) return null;
+            i++;
+          }
+          return null;
+        }
+        while (i < tokens.length) {
+          var t = tokens[i];
+          if (!t || t.length !== 1 || !/^[MmLlHhVvCcSsQqTtAaZz]$/i.test(t)) { i++; continue; }
+          var orig = t;
+          i++;
+          var c = t.toUpperCase();
+          if (c === 'M') {
+            var x = nextNum(), y = nextNum();
+            if (x != null && y != null) {
+              px = x; py = y; x0 = x; y0 = y;
+              commands.push({ type: orig, values: [x, y] });
+              while ((x = nextNum()) != null && (y = nextNum()) != null) {
+                px = x; py = y;
+                commands.push({ type: 'L', values: [x, y] });
+              }
+            }
+            continue;
+          }
+          if (c === 'L') {
+            while (true) {
+              var lx = nextNum(), ly = nextNum();
+              if (lx == null || ly == null) break;
+              px = lx; py = ly;
+              commands.push({ type: orig, values: [lx, ly] });
+            }
+            continue;
+          }
+          if (c === 'H') {
+            while ((x = nextNum()) != null) { px = x; commands.push({ type: orig, values: [x] }); }
+            continue;
+          }
+          if (c === 'V') {
+            while ((y = nextNum()) != null) { py = y; commands.push({ type: orig, values: [y] }); }
+            continue;
+          }
+          if (c === 'C') {
+            while (true) {
+              var x1 = nextNum(), y1 = nextNum(), x2 = nextNum(), y2 = nextNum();
+              px = nextNum(); py = nextNum();
+              if (px == null || py == null) break;
+              commands.push({ type: orig, values: [x1, y1, x2, y2, px, py] });
+            }
+            continue;
+          }
+          if (c === 'S') {
+            while (true) {
+              var sx2 = nextNum(), sy2 = nextNum();
+              px = nextNum(); py = nextNum();
+              if (px == null || py == null) break;
+              commands.push({ type: orig, values: [sx2, sy2, px, py] });
+            }
+            continue;
+          }
+          if (c === 'Q') {
+            while (true) {
+              var qx1 = nextNum(), qy1 = nextNum();
+              px = nextNum(); py = nextNum();
+              if (px == null || py == null) break;
+              commands.push({ type: orig, values: [qx1, qy1, px, py] });
+            }
+            continue;
+          }
+          if (c === 'T') {
+            while ((px = nextNum()) != null && (py = nextNum()) != null) commands.push({ type: orig, values: [px, py] });
+            continue;
+          }
+          if (c === 'A') {
+            while (true) {
+              var rx = nextNum(), ry = nextNum(), rot = nextNum(), la = nextNum(), sweep = nextNum();
+              px = nextNum(); py = nextNum();
+              if (px == null || py == null) break;
+              commands.push({ type: orig, values: [rx, ry, rot, la, sweep, px, py] });
+            }
+            continue;
+          }
+          if (c === 'Z') { px = x0; py = y0; commands.push({ type: orig, values: [] }); continue; }
+        }
+        return commands;
+      }
+
+      function commandsToD(commands) {
+        var parts = [];
+        for (var i = 0; i < commands.length; i++) {
+          var cmd = commands[i];
+          parts.push(cmd.type + (cmd.values.length ? cmd.values.join(',') : ''));
+        }
+        return parts.join(' ');
+      }
+
+      /** Which value indices in a command are the endpoint x,y (for moving anchor). H: only x; V: only y. */
+      function getCommandEndpointIndices(type, values) {
+        var c = (type + '').toUpperCase();
+        if (c === 'M' || c === 'L' || c === 'T') return { x: 0, y: 1 };
+        if (c === 'H') return { x: 0, y: null };
+        if (c === 'V') return { x: null, y: 0 };
+        if (c === 'C') return { x: 4, y: 5 };
+        if (c === 'S' || c === 'Q') return { x: 2, y: 3 };
+        if (c === 'A') return { x: 5, y: 6 };
+        if (c === 'Z') return { x: null, y: null };
+        return { x: null, y: null };
+      }
+
+      /** Points plus meta for each anchor (path, commandIndex, value indices) so we can update path d when moving. */
+      function getPathAnchorsWithMeta(svgDoc) {
+        if (!svgDoc) return { points: [], meta: [] };
+        var points = [];
+        var meta = [];
+        var paths = svgDoc.querySelectorAll('path');
+        for (var pathIdx = 0; pathIdx < paths.length; pathIdx++) {
+          var pathEl = paths[pathIdx];
+          var d = pathEl.getAttribute('d');
+          if (!d) continue;
+          var commands = parsePathDToCommands(d);
+          var px = 0, py = 0, x0 = 0, y0 = 0;
+          for (var ci = 0; ci < commands.length; ci++) {
+            var cmd = commands[ci];
+            var c = (cmd.type + '').toUpperCase();
+            var v = cmd.values;
+            if (c === 'M' || c === 'L') { if (v.length >= 2) { px = v[0]; py = v[1]; if (c === 'M') x0 = px; y0 = py; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: 0, valueIndexY: 1 }); } }
+            else if (c === 'H') { if (v.length >= 1) { px = v[0]; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: 0, valueIndexY: null }); } }
+            else if (c === 'V') { if (v.length >= 1) { py = v[0]; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: null, valueIndexY: 0 }); } }
+            else if (c === 'C') { if (v.length >= 6) { px = v[4]; py = v[5]; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: 4, valueIndexY: 5 }); } }
+            else if (c === 'S' || c === 'Q') { if (v.length >= 4) { px = v[2]; py = v[3]; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: 2, valueIndexY: 3 }); } }
+            else if (c === 'T') { if (v.length >= 2) { px = v[0]; py = v[1]; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: 0, valueIndexY: 1 }); } }
+            else if (c === 'A') { if (v.length >= 7) { px = v[5]; py = v[6]; points.push({ x: px, y: py }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: 5, valueIndexY: 6 }); } }
+            else if (c === 'Z') { points.push({ x: x0, y: y0 }); meta.push({ path: pathEl, pathIndex: pathIdx, commandIndex: ci, valueIndexX: null, valueIndexY: null }); }
+          }
+        }
+        return { points: points, meta: meta };
+      }
+
       function getVectorAnchorsFromSvgDoc(svgDoc) {
         if (!svgDoc) return [];
         var points = [];
@@ -443,13 +601,22 @@
       }
 
       var vectorAnchorsOverlayEl = document.getElementById('vector-anchors-overlay');
-      function showVectorAnchorsForLayer(obj, animate) {
+      var currentAnchorMeta = [];
+      var currentAnchorObj = null;
+      var currentCoordW = 1;
+      var currentCoordH = 1;
+      var currentVpPositions = [];
+      var ANCHOR_HIT_RADIUS = 12;
+
+      function showVectorAnchorsForLayer(obj, animate, selectedAnchorIndex) {
         if (!vectorAnchorsOverlayEl || !obj) return;
-        if (obj.getAttribute('type') !== 'image/svg+xml') { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; return; }
+        if (obj.getAttribute('type') !== 'image/svg+xml') { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; currentAnchorMeta = []; currentAnchorObj = null; return; }
         var doc = obj.contentDocument;
         if (!doc) {
           vectorAnchorsOverlayEl.innerHTML = '';
           vectorAnchorsOverlayEl.hidden = true;
+          currentAnchorMeta = [];
+          currentAnchorObj = null;
           obj.addEventListener('load', function onLoad() {
             obj.removeEventListener('load', onLoad);
             if (getSelectedLayerObject() === obj && typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation();
@@ -457,25 +624,35 @@
           return;
         }
         var svg = doc.querySelector('svg');
-        if (!svg) { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; return; }
+        if (!svg) { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; currentAnchorMeta = []; currentAnchorObj = null; return; }
         var vb = svg.getAttribute('viewBox');
-        var w = parseFloat(svg.getAttribute('width')) || (vb ? parseFloat(vb.split(/\s+/)[2]) : 0) || 1;
-        var h = parseFloat(svg.getAttribute('height')) || (vb ? parseFloat(vb.split(/\s+/)[3]) : 0) || 1;
-        var pts = getVectorAnchorsFromSvgDoc(doc);
+        var vbParts = vb ? vb.trim().split(/\s+/) : [];
+        var coordW = (vbParts.length >= 4) ? parseFloat(vbParts[2]) : (parseFloat(svg.getAttribute('width')) || 1);
+        var coordH = (vbParts.length >= 4) ? parseFloat(vbParts[3]) : (parseFloat(svg.getAttribute('height')) || 1);
+        var result = getPathAnchorsWithMeta(doc);
+        var pts = result.points;
+        var meta = result.meta;
         var isVectorized = obj.getAttribute('data-vectorized') === 'true';
         if (!isVectorized && pts.length > VECTOR_POINTS_COMPLEXITY_THRESHOLD) {
           vectorAnchorsOverlayEl.innerHTML = '';
           vectorAnchorsOverlayEl.hidden = true;
+          currentAnchorMeta = [];
+          currentAnchorObj = null;
           return;
         }
+        currentAnchorMeta = meta;
+        currentAnchorObj = obj;
+        currentCoordW = coordW;
+        currentCoordH = coordH;
         var doAnimate = animate !== false;
         var objRect = obj.getBoundingClientRect();
         vectorAnchorsOverlayEl.innerHTML = '';
         var vpPositions = [];
         for (var i = 0; i < pts.length; i++) {
           vpPositions.push({
-            left: objRect.left + (pts[i].x / w) * objRect.width,
-            top: objRect.top + (pts[i].y / h) * objRect.height
+            left: objRect.left + (pts[i].x / coordW) * objRect.width,
+            top: objRect.top + (pts[i].y / coordH) * objRect.height,
+            anchorIndex: i
           });
         }
         if (vpPositions.length > VECTOR_ANCHORS_MAX_VISIBLE) {
@@ -483,10 +660,11 @@
           var step = (vpPositions.length - 1) / Math.max(1, VECTOR_ANCHORS_MAX_VISIBLE - 1);
           for (var s = 0; s < VECTOR_ANCHORS_MAX_VISIBLE; s++) {
             var idx = s === VECTOR_ANCHORS_MAX_VISIBLE - 1 ? vpPositions.length - 1 : Math.min(Math.floor(s * step), vpPositions.length - 1);
-            sampled.push(vpPositions[idx]);
+            sampled.push({ left: vpPositions[idx].left, top: vpPositions[idx].top, anchorIndex: idx });
           }
           vpPositions = sampled;
         }
+        currentVpPositions = vpPositions;
         var minLeft = Infinity, maxLeft = -Infinity;
         for (var j = 0; j < vpPositions.length; j++) {
           if (vpPositions[j].left < minLeft) minLeft = vpPositions[j].left;
@@ -501,6 +679,8 @@
           dot.style.left = vpPositions[k].left + 'px';
           dot.style.top = vpPositions[k].top + 'px';
           dot.style.animationDelay = delay + 's';
+          dot.setAttribute('data-anchor-index', String(vpPositions[k].anchorIndex));
+          if (selectedAnchorIndex === vpPositions[k].anchorIndex) dot.classList.add('vector-anchor-point--selected');
           if (doAnimate) {
             var gradientLayer = document.createElement('span');
             gradientLayer.className = 'vector-anchor-point__gradient';
@@ -514,12 +694,99 @@
 
       function hideVectorAnchors() {
         if (vectorAnchorsOverlayEl) { vectorAnchorsOverlayEl.innerHTML = ''; vectorAnchorsOverlayEl.hidden = true; }
+        currentAnchorMeta = [];
+        currentAnchorObj = null;
+        currentVpPositions = [];
       }
 
-      function updateVectorAnchorsFromInterpolation(animate) {
+      /** Move one anchor point to (svgX, svgY) in SVG coords. Only updates path d so fill/stroke are preserved. */
+      function moveAnchorPoint(anchorIndex, svgX, svgY) {
+        if (anchorIndex < 0 || anchorIndex >= currentAnchorMeta.length || !currentAnchorObj) return;
+        var m = currentAnchorMeta[anchorIndex];
+        var pathEl = m.path;
+        if (!pathEl) return;
+        var d = pathEl.getAttribute('d');
+        if (!d) return;
+        var commands = parsePathDToCommands(d);
+        if (m.commandIndex < 0 || m.commandIndex >= commands.length) return;
+        var cmd = commands[m.commandIndex];
+        var v = cmd.values;
+        if (m.valueIndexX != null && v.length > m.valueIndexX) v[m.valueIndexX] = svgX;
+        if (m.valueIndexY != null && v.length > m.valueIndexY) v[m.valueIndexY] = svgY;
+        pathEl.setAttribute('d', commandsToD(commands));
+      }
+
+      function clientToSvgCoords(clientX, clientY) {
+        if (!currentAnchorObj) return { x: 0, y: 0 };
+        var r = currentAnchorObj.getBoundingClientRect();
+        return {
+          x: (clientX - r.left) / r.width * currentCoordW,
+          y: (clientY - r.top) / r.height * currentCoordH
+        };
+      }
+
+      var anchorDragState = { active: false, anchorIndex: -1 };
+      function startAnchorDrag(anchorIndex) {
+        anchorDragState.active = true;
+        anchorDragState.anchorIndex = anchorIndex;
+      }
+      function updateAnchorDrag(clientX, clientY) {
+        if (!anchorDragState.active || anchorDragState.anchorIndex < 0) return;
+        var svg = clientToSvgCoords(clientX, clientY);
+        moveAnchorPoint(anchorDragState.anchorIndex, svg.x, svg.y);
+        if (typeof updateVectorAnchorsFromInterpolation === 'function') updateVectorAnchorsFromInterpolation(false, anchorDragState.anchorIndex);
+      }
+      function endAnchorDrag() {
+        if (anchorDragState.active) {
+          anchorDragState.active = false;
+          anchorDragState.anchorIndex = -1;
+        }
+      }
+
+      document.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0 || anchorDragState.active) return;
+        var panel = document.getElementById('transform-panel');
+        if (!panel || panel.hidden) return;
+        if (getInterpolationValue() !== 'vector') return;
+        if (!vectorAnchorsOverlayEl || vectorAnchorsOverlayEl.hidden || currentVpPositions.length === 0) return;
+        var cx = e.clientX;
+        var cy = e.clientY;
+        for (var i = 0; i < currentVpPositions.length; i++) {
+          var vp = currentVpPositions[i];
+          var dx = cx - vp.left;
+          var dy = cy - vp.top;
+          if (dx * dx + dy * dy <= ANCHOR_HIT_RADIUS * ANCHOR_HIT_RADIUS) {
+            e.preventDefault();
+            e.stopPropagation();
+            startAnchorDrag(vp.anchorIndex);
+            try { (e.target && e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId)) || document.body.setPointerCapture(e.pointerId); } catch (err) {}
+            break;
+          }
+        }
+      }, true);
+
+      document.addEventListener('pointermove', function (e) {
+        if (!anchorDragState.active) return;
+        e.preventDefault();
+        updateAnchorDrag(e.clientX, e.clientY);
+      }, true);
+
+      document.addEventListener('pointerup', function (e) {
+        if (e.button !== 0) return;
+        if (anchorDragState.active) {
+          try { document.body.releasePointerCapture(e.pointerId); } catch (err) {}
+          endAnchorDrag();
+        }
+      }, true);
+
+      document.addEventListener('pointercancel', function (e) {
+        if (anchorDragState.active) endAnchorDrag();
+      }, true);
+
+      function updateVectorAnchorsFromInterpolation(animate, selectedAnchorIndex) {
         var panel = document.getElementById('transform-panel');
         var transformOpen = panel && !panel.hidden;
-        if (getInterpolationValue() === 'vector' && transformOpen) showVectorAnchorsForLayer(getSelectedLayerObject(), animate !== false);
+        if (getInterpolationValue() === 'vector' && transformOpen) showVectorAnchorsForLayer(getSelectedLayerObject(), animate !== false, selectedAnchorIndex);
         else hideVectorAnchors();
       }
 
@@ -791,6 +1058,13 @@
             if (pointCount <= VECTOR_POINTS_COMPLEXITY_THRESHOLD) break;
           }
           if (!svgstr) { if (doneCallback) doneCallback(); return; }
+          var rComputed = window.getComputedStyle(obj);
+          var displayW = parseFloat(rComputed.width) || w;
+          var displayH = parseFloat(rComputed.height) || h;
+          svgstr = svgstr.replace(/<svg\s([^>]*)>/, function (_, attrs) {
+            attrs = attrs.replace(/\s*(?:width|height|viewBox)\s*=\s*["'][^"']*["']/gi, '').trim();
+            return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="' + displayW + '" height="' + displayH + '" ' + (attrs ? attrs + ' ' : '') + '>';
+          });
           var blob = new Blob([svgstr], { type: 'image/svg+xml' });
           var blobUrl = URL.createObjectURL(blob);
           var newObj = document.createElement('object');
@@ -800,7 +1074,22 @@
           newObj.setAttribute('data-vectorized', 'true');
           newObj.classList.add('canvas-layer--selected');
           obj.classList.remove('canvas-layer--selected');
+          var computed = window.getComputedStyle(obj);
+          var left = computed.left;
+          var top = computed.top;
+          var width = computed.width;
+          var height = computed.height;
+          var transform = computed.transform;
+          if (left && left !== 'auto') newObj.style.left = left;
+          if (top && top !== 'auto') newObj.style.top = top;
+          if (width && width !== 'auto') newObj.style.width = width;
+          if (height && height !== 'auto') newObj.style.height = height;
+          if (transform && transform !== 'none') newObj.style.transform = transform;
+          var scaleAttr = obj.getAttribute('data-uniform-scale');
+          if (scaleAttr != null) newObj.setAttribute('data-uniform-scale', scaleAttr);
           obj.parentNode.insertBefore(newObj, obj.nextSibling);
+          obj.setAttribute('data-layer-visible', 'false');
+          obj.classList.add('canvas-layer--hidden');
           var allObjs = canvasEl.querySelectorAll('object');
           for (var i = 0; i < allObjs.length; i++) allObjs[i].setAttribute('data-layer-index', String(i));
           var newLayerIndex = currentIndex + 1;
