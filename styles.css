@@ -923,14 +923,15 @@ body {
 .transform-handle--sw { cursor: nesw-resize; }
 .transform-handle--se { cursor: nwse-resize; }
 
-/* Vector anchor points overlay (positioned over selected layer by JS; pointer-events enabled so dots receive clicks) */
+/* Vector anchor points overlay (positioned over selected layer by JS). Container is pointer-events: none so
+   drag-to-move works; only the anchor dots receive pointer events. */
 .vector-anchors-overlay {
   position: fixed;
   left: 0;
   top: 0;
   width: 0;
   height: 0;
-  pointer-events: auto;
+  pointer-events: none;
   z-index: 140;
 }
 
@@ -953,6 +954,7 @@ body {
   transform: scale(0.98);
   animation: vector-anchor-in 0.38s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   cursor: move;
+  pointer-events: auto; /* so anchor drag works; overlay container is pointer-events: none for object drag */
   /* left, top relative to overlay; animation-delay set by JS */
 }
 
