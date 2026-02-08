@@ -277,14 +277,7 @@
         if (e.button !== 0 || moveState.active) return;
         if (transformPanel.hidden) return;
         if (!canvasViewport || !canvasTransformEl) return;
-        if (vectorAnchorsOverlayEl && !vectorAnchorsOverlayEl.hidden && currentVpPositions && currentVpPositions.length > 0) {
-          var cx = e.clientX, cy = e.clientY;
-          for (var ai = 0; ai < currentVpPositions.length; ai++) {
-            var vp = currentVpPositions[ai];
-            var dx = cx - vp.left, dy = cy - vp.top;
-            if (dx * dx + dy * dy <= ANCHOR_HIT_RADIUS * ANCHOR_HIT_RADIUS) return;
-          }
-        }
+        if (vectorAnchorsOverlayEl && !vectorAnchorsOverlayEl.hidden && e.target && vectorAnchorsOverlayEl.contains(e.target)) return;
         if (!isClickOnCanvasViewport(e.target)) return;
         var obj = getSelectedLayerObject();
         if (!obj || obj.classList.contains('canvas-layer--hidden')) return;
@@ -606,7 +599,6 @@
       var currentCoordW = 1;
       var currentCoordH = 1;
       var currentVpPositions = [];
-      var ANCHOR_HIT_RADIUS = 12;
 
       function showVectorAnchorsForLayer(obj, animate, selectedAnchorIndex) {
         if (!vectorAnchorsOverlayEl || !obj) return;
@@ -647,11 +639,22 @@
         var doAnimate = animate !== false;
         var objRect = obj.getBoundingClientRect();
         vectorAnchorsOverlayEl.innerHTML = '';
+        vectorAnchorsOverlayEl.removeAttribute('data-positioned');
+        if (pts.length === 0) {
+          vectorAnchorsOverlayEl.hidden = true;
+          currentVpPositions = [];
+          return;
+        }
+        vectorAnchorsOverlayEl.setAttribute('data-positioned', 'true');
+        vectorAnchorsOverlayEl.style.left = objRect.left + 'px';
+        vectorAnchorsOverlayEl.style.top = objRect.top + 'px';
+        vectorAnchorsOverlayEl.style.width = objRect.width + 'px';
+        vectorAnchorsOverlayEl.style.height = objRect.height + 'px';
         var vpPositions = [];
         for (var i = 0; i < pts.length; i++) {
           vpPositions.push({
-            left: objRect.left + (pts[i].x / coordW) * objRect.width,
-            top: objRect.top + (pts[i].y / coordH) * objRect.height,
+            left: (pts[i].x / coordW) * objRect.width,
+            top: (pts[i].y / coordH) * objRect.height,
             anchorIndex: i
           });
         }
@@ -689,7 +692,7 @@
           }
           vectorAnchorsOverlayEl.appendChild(dot);
         }
-        vectorAnchorsOverlayEl.hidden = pts.length === 0;
+        vectorAnchorsOverlayEl.hidden = false;
       }
 
       function hideVectorAnchors() {
@@ -743,27 +746,19 @@
         }
       }
 
-      document.addEventListener('pointerdown', function (e) {
-        if (e.button !== 0 || anchorDragState.active) return;
-        var panel = document.getElementById('transform-panel');
-        if (!panel || panel.hidden) return;
-        if (getInterpolationValue() !== 'vector') return;
-        if (!vectorAnchorsOverlayEl || vectorAnchorsOverlayEl.hidden || currentVpPositions.length === 0) return;
-        var cx = e.clientX;
-        var cy = e.clientY;
-        for (var i = 0; i < currentVpPositions.length; i++) {
-          var vp = currentVpPositions[i];
-          var dx = cx - vp.left;
-          var dy = cy - vp.top;
-          if (dx * dx + dy * dy <= ANCHOR_HIT_RADIUS * ANCHOR_HIT_RADIUS) {
-            e.preventDefault();
-            e.stopPropagation();
-            startAnchorDrag(vp.anchorIndex);
-            try { (e.target && e.target.setPointerCapture && e.target.setPointerCapture(e.pointerId)) || document.body.setPointerCapture(e.pointerId); } catch (err) {}
-            break;
-          }
-        }
-      }, true);
+      if (vectorAnchorsOverlayEl) {
+        vectorAnchorsOverlayEl.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0 || anchorDragState.active) return;
+          var dot = e.target && e.target.closest && e.target.closest('.vector-anchor-point');
+          if (!dot) return;
+          var idx = dot.getAttribute('data-anchor-index');
+          if (idx == null) return;
+          e.preventDefault();
+          e.stopPropagation();
+          startAnchorDrag(parseInt(idx, 10));
+          try { dot.setPointerCapture(e.pointerId); } catch (err) {}
+        }, true);
+      }
 
       document.addEventListener('pointermove', function (e) {
         if (!anchorDragState.active) return;
